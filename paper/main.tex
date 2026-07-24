@@ -1,0 +1,45 @@
+\documentclass[11pt]{article}
+
+% Swap for the venue style file at submission (neurips_2026.sty / icml2026.sty).
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{assumption}{Assumption}
+
+\title{Energy Descent Certificates: Distribution-Free Selective Prediction and
+Adaptive Halting from Inference-Time Landscape Geometry}
+\author{Polished Snow}
+\date{Draft --- \today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+An energy-based reasoner answers by optimizing a learned energy over a latent---it
+\emph{descends} to an answer. We show that the per-input \emph{geometry} of that descent
+---basin agreement across stochastic restarts, local curvature of the energy over the latent,
+and descent dynamics---is a calibratable predictor of correctness, and that distribution-free
+risk control turns it into a certificate: a guaranteed error rate among answered inputs
+(selective prediction) and a guaranteed error budget under early stopping (adaptive halting).
+Across reasoning tasks, landscape geometry beats the scalar terminal energy used by
+Energy-Based Transformers as a nonconformity score. % (pending experiments)
+\end{abstract}
+
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/method}
+\input{sections/theory}
+\input{sections/experiments}
+\input{sections/related}
+\input{sections/conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

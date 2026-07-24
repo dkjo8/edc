@@ -1,0 +1,11 @@
+# Arithmetic reasoning family (ported from EBRM `arithmetic_reasoning.jl`).
+# Modular multi-operand sums; OOD split increases operand count / modulus.
+[run]
+task = "arithmetic"
+
+[task.arithmetic]
+modulus = 10           # answer in {0..modulus-1}
+n_operands = 3         # in-distribution number of operands
+max_operand = 9
+# OOD generalization split: more operands than seen in training.
+ood_n_operands = 5

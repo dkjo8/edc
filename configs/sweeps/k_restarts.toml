@@ -1,0 +1,8 @@
+# Sweep the number of restarts: K=1 (~EBT, no basin geometry) .. K=32.
+# Tests the ablation "does restart geometry add signal over a single descent?" (invariant 8).
+[sweep]
+base = "configs/experiments/arithmetic_selective.toml"
+
+[sweep.grid]
+"inference.k_restarts" = [1, 2, 4, 8, 16, 32]
+"run.seed" = [0, 1, 2, 3, 4]

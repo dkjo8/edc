@@ -1,0 +1,37 @@
+# Default hyperparameters. Experiment/task configs override keys via deep-merge.
+# Every resolved config is recorded verbatim in each ledger row.
+
+[run]
+seed = 0
+task = "arithmetic"
+notes = ""
+
+[model]
+latent_dim = 32        # d: dimensionality of z
+hidden_dim = 128       # width of encoder / energy / decoder MLPs
+context_dim = 64       # dimensionality of h_x
+
+[inference]
+# K-restart Langevin descent: z_{t+1} = z_t - eta * grad_z E + sqrt(2*eta*tau) * noise
+k_restarts = 8
+steps = 50
+step_size = 0.1        # eta
+temperature = 0.05     # tau > 0 REQUIRED (tau=0 collapses restarts, kills basin agreement)
+init_scale = 1.0       # sigma for z_0 ~ N(0, sigma^2 I)
+grad_tol = 1e-3        # ||grad|| threshold used for steps-to-convergence diagnostics
+
+[train]
+epochs = 5
+batch_size = 128
+lr = 1e-3
+n_train = 4000
+n_neg = 4              # contrastive negatives per example
+neg_noise = 0.5        # perturbation scale for negative-sample mining
+
+[eval]
+n_eval = 1000
+
+[conformal]
+alpha = 0.1            # target error rate among answered inputs
+delta = 0.05           # LTT confidence: P(R_sel <= alpha) >= 1 - delta
+n_calib = 1000

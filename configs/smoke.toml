@@ -1,0 +1,36 @@
+# Tiny CPU config: full encode -> K-restart descend -> decode pipeline in < 60s.
+# Used by `make smoke`, `edc.cli smoke`, and the end-to-end test.
+
+[run]
+seed = 0
+task = "arithmetic"
+notes = "smoke"
+
+[model]
+latent_dim = 24
+hidden_dim = 64
+context_dim = 32
+
+[inference]
+k_restarts = 4
+steps = 25
+step_size = 0.1
+temperature = 0.05
+init_scale = 1.0
+grad_tol = 1e-3
+
+[train]
+epochs = 12
+batch_size = 128
+lr = 2e-3
+n_train = 3000
+n_neg = 2
+neg_noise = 0.5
+
+[eval]
+n_eval = 128
+
+[conformal]
+alpha = 0.1
+delta = 0.05
+n_calib = 128

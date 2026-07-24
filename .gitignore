@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Data & large artifacts (regenerable from seeds + configs)
+data/raw/
+data/processed/
+*.ckpt
+*.msgpack
+*.npz
+
+# Experiment outputs that are NOT the sticky ledger
+runs/
+wandb/
+modal_output/
+
+# OS / editor
+.DS_Store
+*.swp
+
+# Harness / local agent state
+.claude/*.lock
+
+# The append-only results ledger IS tracked; local scratch is not.
+results/*.local.jsonl

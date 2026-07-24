@@ -1,0 +1,15 @@
+# Main selective-prediction experiment on arithmetic (Phase 3/4).
+# Compares geometry nonconformity scores vs the raw-energy / MSP / MC-dropout / ensemble
+# baselines under identical conformal calibration. Produces F2 (risk-coverage) + T1.
+[run]
+task = "arithmetic"
+notes = "selective-prediction main run"
+
+[inference]
+k_restarts = 16      # geometry needs several restarts; K=1 ~ EBT baseline
+steps = 50
+
+[conformal]
+alpha = 0.1
+delta = 0.05
+n_calib = 2000
