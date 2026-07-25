@@ -1,15 +1,42 @@
-# Main selective-prediction experiment on arithmetic (Phase 3/4).
-# Compares geometry nonconformity scores vs the raw-energy / MSP / MC-dropout / ensemble
-# baselines under identical conformal calibration. Produces F2 (risk-coverage) + T1.
+# E1 — main selective-prediction experiment on arithmetic (Phase 3).
+# Compares the geometry nonconformity score vs the raw-energy / rho-basin baselines under
+# identical conformal calibration, on three disjoint folds (fit / calib / test). Produces the
+# ΔAURC falsification test (invariant 8), the LTT abstention guarantee, and F2/F3.
+#
+# Operating regime (docs/EXPERIMENTS.md): the task is tuned to ~75-82% ID base accuracy so AURC
+# has error to remove (a saturated task ties every method). Base error there exceeds alpha=0.1,
+# so the guarantee must genuinely abstain. OOD is a graceful magnitude shift (operands 0-7 -> 0-9,
+# same operand count) rather than the degenerate operand-count extrapolation.
 [run]
 task = "arithmetic"
-notes = "selective-prediction main run"
+seed = 0
+notes = "E1 selective-prediction main run"
+
+[task.arithmetic]
+modular = false
+n_operands = 6
+ood_n_operands = 6        # OOD shift is magnitude, not operand count
+max_operand = 7           # ID operands in [0, 7]
+ood_max_operand = 9       # OOD operands in [0, 9] -> larger sums, low-sum region shared
+
+[model]
+latent_dim = 32
+hidden_dim = 128
+context_dim = 64
 
 [inference]
-k_restarts = 16      # geometry needs several restarts; K=1 ~ EBT baseline
+k_restarts = 12           # geometry needs several restarts; K=1 ~ the EBT baseline
 steps = 50
 
+[train]
+epochs = 7                # tuned for the ~77% ID regime (base error > alpha, abstention exercised)
+n_train = 6000
+n_neg = 4
+
+[eval]
+n_eval = 1500             # fit and test fold sizes
+
 [conformal]
-alpha = 0.1
-delta = 0.05
-n_calib = 2000
+alpha = 0.1               # target error rate among answered inputs
+delta = 0.05              # LTT confidence: P(R_sel <= alpha) >= 1 - delta
+n_calib = 1500            # calibration fold size (LTT power)

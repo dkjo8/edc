@@ -26,6 +26,8 @@ inference-time descent** into distribution-free reliability certificates. Read
 
 ## Phase map (see docs/EXPERIMENTS.md)
 
-- Phase 0 skeleton ✅ / Phase 1 base reasoner ✅ (this pass)
-- Phase 2 geometry features · Phase 3 conformal + halting · Phase 4 experiments/OOD/Modal
-  · Phase 5 paper — stubbed, `NotImplementedError` with a phase note until built.
+- Phase 0 skeleton ✅ / Phase 1 base reasoner ✅ / Phase 2 geometry features ✅
+- Phase 3 conformal falsification + LTT abstention ✅ (E1: geometry beats energy, ΔAURC CI
+  excludes 0; F2/F3 regenerate from the ledger). Adaptive halting + F4 deferred to Phase 4.
+- Phase 4 halting/experiments/OOD/Modal · Phase 5 paper — stubbed, `NotImplementedError` with a
+  phase note until built.

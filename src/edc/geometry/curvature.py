@@ -28,7 +28,7 @@ def hvp(f, z, v):
 
 def lambda_max(f, z, key, iters: int = 12) -> jnp.ndarray:
     """Top Hessian eigenvalue at ``z`` via power iteration (sharpness of the basin)."""
-    v = jax.random.normal(key, z.shape)
+    v = jax.random.normal(key, z.shape, dtype=z.dtype)
     v = v / (jnp.linalg.norm(v) + 1e-12)
     lam = jnp.array(0.0)
     for _ in range(iters):
@@ -57,3 +57,25 @@ def energy_at(energy, params, h_x_row):
         return jnp.squeeze(energy(params, h_x_row[None, :], z[None, :]))
 
     return f
+
+
+def batched_curvature(energy, params, contexts, zs, key, iters: int = 12, n_probes: int = 8):
+    """Per-particle ``(lambda_max, tr(H))`` for a flat batch of ``N`` particles.
+
+    This is the JAX-side entry point the (plain-NumPy) Phase-2 feature assembler calls, so all
+    per-input Hessian-vector products and their ``vmap`` over restarts stay confined to the JAX
+    core (invariant 1). ``contexts`` is ``(N, dc)`` and ``zs`` is ``(N, d)`` — flattened
+    ``B*K`` particles exactly as ``inference.restarts.solve`` lays them out. Each particle gets
+    its own PRNG stream (one key for power iteration, one for the Hutchinson probes) so the
+    estimate is a pure function of ``key``. Returns ``(lmax (N,), trace (N,))``.
+    """
+    n = zs.shape[0]
+    keys = jax.random.split(key, n)
+
+    def one(h_row, z_row, k):
+        k_lam, k_tr = jax.random.split(k)
+        f = energy_at(energy, params, h_row)
+        return (lambda_max(f, z_row, k_lam, iters=iters),
+                hutchinson_trace(f, z_row, k_tr, n_probes=n_probes))
+
+    return jax.vmap(one)(contexts, zs, keys)

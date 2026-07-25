@@ -51,6 +51,7 @@ def solve(fns: ReasonerFns, params, x, cfg, key, k_restarts: int | None = None) 
         grad_norms=to_bk(gnorms.T),     # (N, T)   -> (B, K, T)
         logits=to_bk(logits),           # (B, K, C)
         pred=to_bk(pred),               # (B, K)
+        h_x=h_x,                        # (B, dc)  one context per input (shared across restarts)
     )
 
 

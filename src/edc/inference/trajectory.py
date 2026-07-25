@@ -20,6 +20,7 @@ class TrajectoryRecord:
     grad_norms: Array     # (B, K, T)   ||grad_z E|| at each step
     logits: Array         # (B, K, C)   decoder logits at z_star
     pred: Array           # (B, K)      argmax class per restart
+    h_x: Array            # (B, dc)     per-input context; needed to recompute curvature at z*
 
     @property
     def terminal_energy(self) -> Array:

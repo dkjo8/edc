@@ -58,7 +58,7 @@ PYTHONPATH=src python -m edc.cli smoke --config configs/smoke.toml
 src/edc/
   energy/       encoder → E_θ(h_x, z) → decoder            (JAX/Flax)
   inference/    K-restart Langevin descent + trajectory logging
-  geometry/     basin · curvature (HVP) · energy stats · dynamics   [Phase 2]
+  geometry/     basin · curvature (HVP) · energy stats · dynamics   ✓
   conformal/    Learn-then-Test (abstention) · Conformal Risk Control (halting)  [Phase 3]
   halting/      adaptive compute policy                    [Phase 3]
   tasks/        synthetic reasoning families (+ OOD splits)
@@ -69,8 +69,9 @@ configs/  experiments/  analysis/  results/ledger.jsonl  tests/  docs/  paper/
 
 ## Status
 
-Phase 0 (skeleton) and Phase 1 (runnable base reasoner) are in. Geometry features,
-the conformal layer, full experiments, and the paper are scaffolded and tracked in
+Phase 0 (skeleton), Phase 1 (runnable base reasoner), and Phase 2 (geometry features) are in.
+`edc.cli geometry` scores each feature's correct-vs-incorrect AUROC against the raw-energy
+baseline. The conformal layer, full experiments, and the paper are scaffolded and tracked in
 [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md). Current state:
 [`docs/SESSION_HANDOFF.md`](docs/SESSION_HANDOFF.md).
 
