@@ -28,6 +28,8 @@ inference-time descent** into distribution-free reliability certificates. Read
 
 - Phase 0 skeleton ✅ / Phase 1 base reasoner ✅ / Phase 2 geometry features ✅
 - Phase 3 conformal falsification + LTT abstention ✅ (E1: geometry beats energy, ΔAURC CI
-  excludes 0; F2/F3 regenerate from the ledger). Adaptive halting + F4 deferred to Phase 4.
-- Phase 4 halting/experiments/OOD/Modal · Phase 5 paper — stubbed, `NotImplementedError` with a
-  phase note until built.
+  excludes 0; F2/F3 regenerate from the ledger).
+- Phase 4a robustness + K-ablation ✅ (`run_sweep` + `aggregate` + `make_tables` T1/T2/T3 + S1
+  K-lift figure; S1: geometry lift grows monotonically with restarts, K=1≈EBT barely separates).
+- Phase 4b halting/F4 · more tasks/OOD/F6 · Modal · Phase 5 paper — stubbed, `NotImplementedError`
+  with a phase note until built.

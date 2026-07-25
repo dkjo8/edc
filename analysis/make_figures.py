@@ -18,6 +18,7 @@ FIG_DIR = Path(__file__).resolve().parent / "figures"
 _FIGURES = [
     ("F2_risk_coverage.png", plotting.risk_coverage_curve),
     ("F3_coverage_validity.png", plotting.coverage_validity),
+    ("S1_k_restart_lift.png", plotting.k_restart_lift),
 ]
 
 
@@ -33,10 +34,8 @@ def main() -> int:
         except (ValueError, NotImplementedError, ImportError) as e:
             print(f"[figures] skip {fname}: {e}")
             continue
-        # provenance: which selective run fed this figure
-        sel = [r for r in rows if r.get("split") == "selective"]
-        run_id = sel[-1]["run_id"] if sel else "?"
-        print(f"[figures] wrote {out}  (from run_id={run_id})")
+        n_sel = sum(1 for r in rows if r.get("split") == "selective")
+        print(f"[figures] wrote {out}  (from {n_sel} selective rows)")
         n_ok += 1
     print(f"[figures] {n_ok}/{len(_FIGURES)} figures generated -> {FIG_DIR}")
     return 0

@@ -11,7 +11,7 @@ Every experiment: config file → purpose → expected figure/table → status. 
 | E2 | (graph) | Same on graph planning | F2, T1 | ⏳ Phase 4 |
 | E3 | (logic) | Same on logic | F2, T1 | ⏳ Phase 4 |
 | E4 | (hard sudoku) | Stronger-result task, OOD split | F2, F6, T1 | ⏳ Phase 4 |
-| S1 | `configs/sweeps/k_restarts.toml` | K=1..32: does restart geometry add signal? | F5, T2 | ⏳ Phase 4 |
+| S1 | `configs/sweeps/k_restarts.toml` | K=1..16: does restart geometry add signal? | S1 fig, T2 | ✅ Phase 4a |
 | A1 | (ablation grid) | Feature-group leave-one-out; τ, curvature fidelity | T2 | ⏳ Phase 4 |
 
 ## Figures → claims (mirrored in `paper/README.md`)
@@ -38,6 +38,22 @@ of inputs at selective risk 0.075 ≤ 0.1 (base error 0.19 → the guarantee gen
 *reverses* the Phase-2 single-feature picture where `energy/std` out-separated any lone geometry
 feature — the signal is in the **combined** geometry vector, exactly the paper's claim. Regenerate
 F2/F3 with `make figures`. Single-seed so far; the ≥5-seed paired bootstrap is Phase 4.
+
+**S1 K-ablation (2026-07-25, 5 seeds/K, reduced folds n_test=600):** the geometry lift over the best
+raw-energy baseline **grows monotonically with restarts** — exactly the mechanism the method claims:
+
+| K | AURC(geom) | ΔAURC (energy−geom) | seeds with CI excl. 0 |
+|---|-----------|---------------------|-----------------------|
+| 1 (≈EBT) | 0.123 | +0.026 ± 0.016 | **1/5** |
+| 2 | 0.104 | +0.043 ± 0.024 | 3/5 |
+| 4 | 0.082 | +0.062 ± 0.035 | 4/5 |
+| 8 | 0.076 | +0.070 ± 0.033 | **5/5** |
+| 16 | 0.051 | +0.083 ± 0.035 | **5/5** |
+
+K=1 — a single descent with no basin geometry (≈ the EBT baseline) — barely separates (1/5 seeds);
+the **restart** geometry is what carries the signal. This confirms the secondary falsifier does *not*
+fire: K>1 gives clear lift over K=1. (T2 also lists a K=12 row from the two full-fold E1 runs, which
+sits on the same trend.) Regenerate T1/T2/T3 with `make tables`, the figure with `make figures`.
 
 ## Operating regime
 

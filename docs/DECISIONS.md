@@ -2,6 +2,19 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-25 — Phase 4a: sweep harness (override+grid), reduced folds, multi-seed ΔAURC aggregation
+**Decision:** `experiments/run_sweep.py` expands a `[sweep.grid]` of dotted keys (cartesian) over a
+`base` config, with optional constant `[sweep.override]`; every cell reuses `run_experiment.run_and_append`
+(the single train→evaluate→ledger path). The S1 K-sweep runs with **reduced folds**
+(`eval.n_eval=600`, `conformal.n_calib=800`) and **`evaluate(include_ood=False)`** (3 folds not 4) to
+keep 25 cells CPU-tractable. Multi-seed ΔAURC is aggregated in `analysis/aggregate.py` from each
+row's **own point estimate + 95% CI** (mean±std over seeds; count of seeds whose CI excludes 0) —
+**not** by pooling raw scores across seeds, which would break per-run exchangeability. **Why:** the
+falsification metric (ΔAURC) is threshold-free and stable at n_test=600, so smaller folds are fine
+for the ablation; each seed already carries a valid within-run bootstrap CI, so the honest
+cross-seed summary is "how many seeds independently clear 0," not a re-bootstrap. **Reversible?**
+Yes — folds/grid are config; `include_ood` defaults to True (E1 unchanged); K=32 can be re-added.
+
 ## 2026-07-24 — Phase 3: LTT uses Bonferroni over a bounded grid, not ascending fixed-sequence
 **Decision:** `conformal.ltt.calibrate` controls FWER with **Bonferroni** (`p(lambda) <= delta/m`)
 over a bounded quantile grid of `m` candidate thresholds, and picks the max-coverage admissible

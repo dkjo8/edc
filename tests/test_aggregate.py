@@ -1,0 +1,46 @@
+"""Ledger aggregation across seeds: grouping by K + the multi-seed falsification summary.
+
+Offline + CPU-only, on hand-built synthetic ledger rows (no training).
+"""
+
+import aggregate
+
+
+def _row(k, seed, delta, lo, geo=0.08, best=0.14):
+    return {
+        "run_id": f"r{k}_{seed}", "seed": seed, "split": "selective",
+        "config_hash": f"h{k}_{seed}", "git_sha": "abc1234",
+        "env": {"python": "3.12", "jax": "0.11", "jax_backend": "cpu"},
+        "config": {"inference": {"k_restarts": k}},
+        "metrics": {
+            "k_restarts": k, "accuracy_id": 0.8, "base_error": 0.2,
+            "best_energy_baseline": "energy_min",
+            "aurc": {"geometry": geo, "energy_min": best},
+            "delta_aurc_vs_best_energy": [delta, lo, delta + 0.02],
+            "ltt": {"coverage": 0.7, "selective_risk": 0.07, "abstain_rate": 0.3},
+        },
+    }
+
+
+def test_by_k_groups_and_dedups():
+    rows = [_row(1, 0, 0.0, -0.01), _row(1, 1, 0.0, -0.01), _row(4, 0, 0.06, 0.05)]
+    # a re-run of (K=4, seed 0) with the SAME config_hash must replace, not duplicate
+    rows.append(_row(4, 0, 0.07, 0.06))
+    grouped = aggregate.by_k(rows)
+    assert set(grouped) == {1, 4}
+    assert len(grouped[1]) == 2 and len(grouped[4]) == 1
+    assert grouped[4][0]["metrics"]["delta_aurc_vs_best_energy"][0] == 0.07   # latest kept
+
+
+def test_aggregate_cell_verdict():
+    # K=1: no lift (CI includes 0). K=16: clear lift on all seeds.
+    k1 = [_row(1, s, 0.001, -0.01) for s in range(5)]
+    a1 = aggregate.aggregate_cell(k1)
+    assert a1["seeds_ci_excludes_0"] == 0 and a1["geometry_wins_all"] is False
+    assert a1["n_seeds"] == 5 and a1["k_restarts"] == 1
+
+    k16 = [_row(16, s, 0.09, 0.07, geo=0.05) for s in range(5)]
+    a16 = aggregate.aggregate_cell(k16)
+    assert a16["seeds_ci_excludes_0"] == 5 and a16["geometry_wins_all"] is True
+    assert a16["delta_aurc"][0] > a1["delta_aurc"][0]           # lift grows with K
+    assert a16["aurc_geometry"][0] < a16["aurc_best_energy"][0]  # geometry lower AURC = better

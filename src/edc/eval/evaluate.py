@@ -67,13 +67,16 @@ def _resample_curve(scores, correct) -> dict:
     return {"coverage": _COVERAGE_GRID.tolist(), "risk": risk_grid.tolist()}
 
 
-def evaluate(cfg, task) -> dict:
+def evaluate(cfg, task, include_ood: bool = True) -> dict:
     """Train, calibrate, and score geometry vs raw energy on disjoint folds. Returns a metrics dict.
 
     Folds: ``fit`` (train the nonconformity mapper), ``calib`` (choose the LTT threshold), ``test``
     (report AURC, ΔAURC, and the abstention guarantee). Disjoint and independently seeded so the
     conformal guarantees are valid (invariants 7). ΔAURC and the guarantee are read on ``test``;
     the mapper never sees it.
+
+    ``include_ood=False`` skips the OOD fold (and its ``accuracy_ood``/``aurc_ood`` metrics), one
+    quarter of the inference — used by the K-sweep, which only needs the ID falsification numbers.
     """
     params, fns, history = train(cfg, task)
 
@@ -82,7 +85,7 @@ def evaluate(cfg, task) -> dict:
     fit = _fold(fns, params, cfg, task, "id", 0, k_fit)
     cal = _fold(fns, params, cfg, task, "id", 1, k_cal)
     test = _fold(fns, params, cfg, task, "id", 2, k_test)
-    ood = _fold(fns, params, cfg, task, "ood", 3, k_ood)
+    ood = _fold(fns, params, cfg, task, "ood", 3, k_ood) if include_ood else None
 
     # --- Fit the geometry nonconformity mapper on the FIT fold only (invariant 7) --------------
     mapper = nc.fit_mapper(fit["features"], fit["correct"])
@@ -129,18 +132,16 @@ def evaluate(cfg, task) -> dict:
         validity["achieved_risk"].append(r_sel)
         validity["coverage"].append(cov)
 
-    return {
+    result = {
         "n_fit": int(fit["correct"].shape[0]),
         "n_calib": int(cal["correct"].shape[0]),
         "n_test": int(test["correct"].shape[0]),
+        "k_restarts": int(cfg.inference.k_restarts),
         "accuracy_id": test["accuracy"],
-        "accuracy_ood": ood["accuracy"],
         "base_error": float((~correct).mean()),
         "final_train_loss": float(history["epochs"][-1]["loss"]),
         "feature_names": test["names"],
         "aurc": aurc,
-        "aurc_ood": {n: metrics.aurc(s, ood["correct"])
-                     for n, s in scores_for(ood).items()},
         "best_energy_baseline": best_energy,
         "delta_aurc_vs_energy_min": [d_min, lo_min, hi_min],
         "delta_aurc_vs_best_energy": [d_best, lo_best, hi_best],
@@ -150,6 +151,11 @@ def evaluate(cfg, task) -> dict:
         "coverage_validity": validity,
         "ece_geometry": metrics.ece(1.0 - test_scores["geometry"], correct),
     }
+    if include_ood:
+        result["accuracy_ood"] = ood["accuracy"]
+        result["aurc_ood"] = {n: metrics.aurc(s, ood["correct"])
+                              for n, s in scores_for(ood).items()}
+    return result
 
 
 def _selective_risk_coverage(lam, scores, correct):

@@ -2,7 +2,7 @@
 
 **Start here.** Rolling state of the project between sessions.
 
-## Current state (2026-07-24)
+## Current state (2026-07-25)
 
 - **Phase 0 (skeleton): ✅** repo tree, `uv`/`pyproject.toml`, `Makefile`, CI, config system
   (`edc.config`), deterministic seeding (`edc.seeding`), append-only ledger (`edc.ledger`),
@@ -25,8 +25,14 @@
   `eval.evaluate` (disjoint fit/calib/test folds) + `experiments/run_experiment.py`; F2/F3 in
   `plotting` + `analysis/make_figures.py`. **E1 ran: geometry beats raw energy** (ΔAURC +0.074, 95%
   CI [+0.054, +0.093]); LTT holds (69% coverage @ selective risk 0.075 ≤ α=0.1). See EXPERIMENTS.md.
-- **Deferred / Phases 4–5: stubbed.** Adaptive halting (`halting.adaptive`) + F4, graph/logic/hard
-  tasks, sweep/modal runners, tables (T1–T3), remaining figures.
+- **Phase 4a (robustness + K-ablation + reporting): ✅** `experiments/run_sweep.py` (grid+override,
+  reuses `run_experiment.run_and_append`; `evaluate(include_ood=False)` for cheaper cells),
+  `analysis/aggregate.py` (multi-seed ledger aggregation), `analysis/make_tables.py` (T1/T2/T3 →
+  `paper/tables/*.tex`), and the S1 K-lift figure. **S1 ran (5 seeds × K∈{1,2,4,8,16}):** the ΔAURC
+  lift grows monotonically with K — K=1 (≈EBT) separates on only 1/5 seeds, K≥8 on 5/5. The
+  restart geometry is the mechanism; the "K>1 gives no lift" falsifier does not fire. See EXPERIMENTS.md.
+- **Deferred / Phases 4b–5: stubbed.** Adaptive halting (`halting.adaptive`) + F4, F5 feature-
+  distribution diagnostic, graph/logic/hard tasks + F6, Modal runner, ≥5-seed full-fold E1 for T1.
 
 ## What is real vs stub
 
@@ -35,18 +41,22 @@
   batched wrapper, **all geometry features + assembly**, `single_feature_auroc`, `edc.cli geometry`;
   **the full selective-prediction stack**: AURC/ΔAURC, nonconformity mapper, split-conformal/LTT/CRC,
   `eval.evaluate`, `run_experiment.py`, F2/F3.
-- Stub: `halting.adaptive` + F4, `eval.metrics` tables, graph/logic/hard tasks,
-  experiment sweep/modal runners, `make_tables` (T1–T3).
+  `eval.evaluate`, `run_experiment.py`, F2/F3; **the sweep/aggregation/tables stack**:
+  `run_sweep.py`, `analysis.aggregate`, `make_tables` (T1–T3), S1 K-lift figure.
+- Stub: `halting.adaptive` + F4, F5 feature-distribution diagnostic, graph/logic/hard tasks,
+  Modal runner.
 
-## Next steps (Phase 4)
+## Next steps (Phase 4b)
 
-1. **Multi-seed E1:** run ≥5 seeds and report the paired-bootstrap ΔAURC across seeds (currently
-   single-seed). Add `analysis/make_tables.py` T1 (accuracy, coverage, abstention, AURC per score).
-2. **Adaptive halting (F4):** add per-step decoded answers to `TrajectoryRecord` (schema change),
-   implement `halting.adaptive.halting_policy` consuming `crc.calibrate`, emit the compute-accuracy
-   Pareto. `crc.calibrate` is already built + tested.
+1. **Adaptive halting (F4):** add per-step decoded answers to `TrajectoryRecord` (optimizer emits
+   `z` per scan step → decode per step), implement `halting.adaptive.halting_policy` consuming the
+   already-built + tested `crc.calibrate`, emit the compute-vs-accuracy Pareto.
+2. **Full-fold ≥5-seed E1 for T1:** the sweep's T1 uses reduced folds (n_test=600) at K=16; add a
+   seed sweep at the full E1 config (n_test=1500) for the headline table.
 3. **More tasks + OOD stress (F6):** graph planning / logic / hard sudoku; the magnitude-shift OOD
    (`ood_max_operand`) is wired — extend `evaluate` to report the guarantee *breaking* under shift.
+4. **F5 mechanism diagnostic:** store per-feature correct-vs-incorrect summaries in `evaluate` and
+   plot basin/curvature distributions.
 
 ## Operating regime note
 
