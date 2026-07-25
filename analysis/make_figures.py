@@ -19,6 +19,8 @@ _FIGURES = [
     ("F2_risk_coverage.png", plotting.risk_coverage_curve),
     ("F3_coverage_validity.png", plotting.coverage_validity),
     ("F4_halting_pareto.png", plotting.halting_pareto),
+    ("F5_feature_diagnostics.png", plotting.feature_diagnostics),
+    ("F6_ood_stress.png", plotting.ood_stress),
     ("S1_k_restart_lift.png", plotting.k_restart_lift),
 ]
 

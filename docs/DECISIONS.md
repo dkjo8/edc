@@ -2,6 +2,19 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-25 — Phase 4c: F6 exhibits the guarantee breaking OOD; F5 stores compact diagnostics
+**Decision:** F6 (OOD stress) is produced by calibrating the LTT selective-risk threshold on the
+**ID** calibration fold and then evaluating the achieved risk on the **OOD** test fold across the
+α-sweep (`evaluate` gains `ood_validity` + an `ood_ltt` block, guarded by `include_ood`). F5 stores
+`feature_diagnostics` = per-feature `single_feature_auroc` + 20-bin correct/incorrect histograms
+(~850 numbers), **not** raw per-input features. **Why:** the exchangeability that the LTT/CRC
+guarantees assume is exactly what a distribution shift violates, so applying the *ID-calibrated*
+threshold to OOD is the honest way to show the guarantee failing (the argument for abstention in
+critical systems); storing histograms keeps the figure regenerable from the ledger (invariant 6)
+without bloating it. **Honesty:** F6 is a negative result by construction — the row records whatever
+happened (`risk_within_budget`), it is never forced. **Reversible?** Yes — both are additive metric
+blocks; `include_ood=False` (the sweep path) omits F6.
+
 ## 2026-07-25 — Phase 4b: adaptive halting — opt-in per-step decodes, basin-agreement signal, λ=1−τ
 **Decision:** Adaptive halting stops the descent when **basin agreement** (plurality fraction of
 decoded answers across restarts) at a step crosses a threshold τ; the halting loss

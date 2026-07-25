@@ -37,8 +37,13 @@
   `λ=1−τ`), `eval.evaluate_halting`, `experiments/run_halting.py`, F4 in plotting/make_figures.
   **H1 ran:** CRC τ̂=0.917 saves **57.8% compute** at halting risk **0.9% ≤ α=0.1**, no accuracy
   loss, risk monotone in τ. Both guarantees now live (LTT abstention + CRC halting).
-- **Deferred / Phases 4c–5: stubbed.** F5 feature-distribution diagnostic, graph/logic/hard tasks +
-  F6 OOD stress, Modal runner, ≥5-seed full-fold E1 for T1.
+- **Phase 4c (arithmetic figure set complete — F5 + F6): ✅** `evaluate` gained `feature_diagnostics`
+  (F5) and `ood_validity`/`ood_ltt` (F6, ID-calibrated λ applied to OOD); `plotting.feature_diagnostics`
+  + `plotting.ood_stress`; F5/F6 in make_figures. **F6:** at α=0.1 selective risk is 0.075 ID (valid)
+  vs **0.762 OOD** — the guarantee breaks under shift, motivating abstention. **F5:** basin-agreement
+  features separate correct/incorrect best; curvature weak on arithmetic (reported honestly).
+- **Deferred / Phases 4d–5: stubbed.** Generalization to a 2nd task (E2 graph/logic — EBRM generator
+  port + retuning), ≥5-seed full-fold E1 for T1, Modal runner, paper write-up.
 
 ## What is real vs stub
 
@@ -49,18 +54,18 @@
   nonconformity mapper, split-conformal/LTT/CRC, `eval.evaluate`, `run_experiment.py`, F2/F3;
   **the sweep/aggregation/tables stack**: `run_sweep.py`, `analysis.aggregate`, `make_tables`
   (T1–T3), S1 K-lift figure; **adaptive halting**: `halting.adaptive`, `eval.evaluate_halting`,
-  `run_halting.py`, F4.
-- Stub: F5 feature-distribution diagnostic, graph/logic/hard tasks, Modal runner, `make_tables`
-  cross-task rows.
+  `run_halting.py`, F4; **F5 mechanism + F6 OOD stress** (`feature_diagnostics`, `ood_validity`).
+- Stub: graph/logic/hard tasks (E2–E4), Modal runner, `make_tables` cross-task rows, paper write-up.
 
-## Next steps (Phase 4c)
+## Next steps (Phase 4d)
 
-1. **Full-fold ≥5-seed E1 for T1:** the sweep's T1 uses reduced folds (n_test=600) at K=16; add a
+1. **Generalize to a 2nd task (E2):** port the EBRM graph-planning or logic generator into
+   `tasks/{graph_planning,logic}.py` (fixed feature_dim, ID/OOD splits), tune to the 70–85% regime,
+   and re-run E1/S1/halting — the discovery's generalization claim (the biggest remaining result).
+2. **Full-fold ≥5-seed E1 for T1:** the sweep's T1 uses reduced folds (n_test=600) at K=16; add a
    seed sweep at the full E1 config (n_test=1500) for the headline table.
-2. **More tasks + OOD stress (F6):** graph planning / logic / hard sudoku; the magnitude-shift OOD
-   (`ood_max_operand`) is wired — extend `evaluate` to report the guarantee *breaking* under shift.
-3. **F5 mechanism diagnostic:** store per-feature correct-vs-incorrect summaries in `evaluate` and
-   plot basin/curvature distributions.
+3. **Paper write-up:** the figure set (F2–F6, S1) and tables (T1–T3) are complete for arithmetic;
+   wire them into `paper/` and draft the results section.
 
 ## Operating regime note
 

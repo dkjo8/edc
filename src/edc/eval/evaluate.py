@@ -67,6 +67,30 @@ def _resample_curve(scores, correct) -> dict:
     return {"coverage": _COVERAGE_GRID.tolist(), "risk": risk_grid.tolist()}
 
 
+def _feature_diagnostics(features, names, correct, n_bins: int = 20) -> dict:
+    """Per-feature correct-vs-incorrect separation (AUROC) + histograms — the F5 mechanism data.
+
+    Compact and fully regenerable: per feature, the single-feature AUROC and 20-bin histograms of
+    the correct and incorrect subsets over the feature's observed range.
+    """
+    features = np.asarray(features, dtype=float)
+    correct = np.asarray(correct).astype(bool)
+    auroc, hist = {}, {}
+    for j, name in enumerate(names):
+        col = features[:, j]
+        auroc[name] = metrics.single_feature_auroc(col, correct)
+        lo, hi = float(col.min()), float(col.max())
+        if hi <= lo:
+            hi = lo + 1.0                                   # degenerate/constant feature
+        edges = np.linspace(lo, hi, n_bins + 1)
+        c_counts, _ = np.histogram(col[correct], bins=edges)
+        i_counts, _ = np.histogram(col[~correct], bins=edges)
+        hist[name] = {"edges": edges.tolist(),
+                      "correct_counts": c_counts.tolist(),
+                      "incorrect_counts": i_counts.tolist()}
+    return {"names": list(names), "auroc": auroc, "hist": hist}
+
+
 def evaluate(cfg, task, include_ood: bool = True) -> dict:
     """Train, calibrate, and score geometry vs raw energy on disjoint folds. Returns a metrics dict.
 
@@ -121,16 +145,28 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
     out = ltt.calibrate(cal_scores["geometry"], cal["correct"], alpha, delta)
     ltt_block = _ltt_report(out["lambda_hat"], test_scores["geometry"], correct, alpha, delta)
 
-    # --- Coverage-validity sweep (F3): achieved selective risk vs nominal alpha -----------------
+    # --- Coverage-validity sweep (F3: ID) + OOD stress (F6) -------------------------------------
+    # The LTT threshold is always calibrated on the ID calib fold; F6 applies that same threshold
+    # to the OOD test fold, where exchangeability is broken, to exhibit the guarantee failing.
+    ood_geo = scores_for(ood)["geometry"] if include_ood else None
+    ood_correct = ood["correct"] if include_ood else None
     validity = {"alpha_grid": [], "target": [], "achieved_risk": [], "coverage": []}
+    ood_validity = ({"target": [], "id_risk": [], "ood_risk": [], "id_coverage": [],
+                     "ood_coverage": []} if include_ood else None)
     for a in _ALPHA_GRID:
-        o = ltt.calibrate(cal_scores["geometry"], cal["correct"], a, delta)
-        lam = o["lambda_hat"]
+        lam = ltt.calibrate(cal_scores["geometry"], cal["correct"], a, delta)["lambda_hat"]
         r_sel, cov = _selective_risk_coverage(lam, test_scores["geometry"], correct)
         validity["alpha_grid"].append(a)
         validity["target"].append(a)
         validity["achieved_risk"].append(r_sel)
         validity["coverage"].append(cov)
+        if include_ood:
+            r_ood, cov_ood = _selective_risk_coverage(lam, ood_geo, ood_correct)
+            ood_validity["target"].append(a)
+            ood_validity["id_risk"].append(r_sel)
+            ood_validity["ood_risk"].append(r_ood)
+            ood_validity["id_coverage"].append(cov)
+            ood_validity["ood_coverage"].append(cov_ood)
 
     result = {
         "n_fit": int(fit["correct"].shape[0]),
@@ -149,12 +185,23 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
         "risk_coverage": {name: _resample_curve(s, correct) for name, s in test_scores.items()},
         "ltt": ltt_block,
         "coverage_validity": validity,
+        "feature_diagnostics": _feature_diagnostics(test["features"], test["names"], correct),
         "ece_geometry": metrics.ece(1.0 - test_scores["geometry"], correct),
     }
     if include_ood:
         result["accuracy_ood"] = ood["accuracy"]
         result["aurc_ood"] = {n: metrics.aurc(s, ood["correct"])
                               for n, s in scores_for(ood).items()}
+        # F6: the ID-calibrated threshold at the configured alpha, evaluated on OOD (expect break).
+        r_ood, cov_ood = _selective_risk_coverage(out["lambda_hat"], ood_geo, ood_correct)
+        result["ood_ltt"] = {
+            "alpha": alpha,
+            "lambda_hat": out["lambda_hat"],
+            "selective_risk": r_ood,
+            "coverage": cov_ood,
+            "risk_within_budget": bool(cov_ood == 0 or r_ood <= alpha),
+        }
+        result["ood_validity"] = ood_validity
     return result
 
 

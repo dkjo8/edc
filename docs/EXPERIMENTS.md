@@ -18,11 +18,11 @@ Every experiment: config file → purpose → expected figure/table → status. 
 ## Figures → claims (mirrored in `paper/README.md`)
 
 - **F1** method schematic (encode → K-restart descent → geometry → certificate) — TikZ, not data.
-- **F2** risk–coverage curves per nonconformity score — **core selective-prediction result**.
-- **F3** empirical coverage vs nominal 1−α — calibration validity (must sit on the diagonal).
-- **F4** compute–accuracy tradeoff under adaptive halting.
-- **F5** geometry-feature diagnostics: basin/curvature distributions, correct vs incorrect.
-- **F6** distribution-shift stress: coverage/abstention under OOD difficulty.
+- **F2** risk–coverage curves per nonconformity score — **core selective-prediction result**. ✅
+- **F3** empirical coverage vs nominal 1−α — calibration validity (must sit on the diagonal). ✅
+- **F4** compute–accuracy tradeoff under adaptive halting. ✅
+- **F5** geometry-feature diagnostics: basin/curvature distributions, correct vs incorrect. ✅
+- **F6** distribution-shift stress: selective risk holds ID, breaks under OOD → motivates abstention. ✅
 - **T1** main results (accuracy, coverage, abstention rate, avg compute).
 - **T2** ablations (feature leave-one-out, K sweep).
 - **T3** reproducibility appendix (seeds, configs, env) — auto-generated from ledger.
@@ -66,6 +66,17 @@ empirical risk was **monotone in τ** (CRC's assumption held). At that operating
 uses **42% of the step budget (57.8% compute saved)** with a halting risk of **0.9% ≤ α=10%** and
 **no accuracy loss** (full 0.804 → halted 0.807). F4 is the compute-vs-accuracy Pareto; the CRC
 point sits at the elbow. Both guarantees are now live: LTT abstention (E1) and CRC halting (H1).
+
+## OOD stress — the guarantee breaks under shift (F6, run_id `1acd65c19072`)
+
+The LTT selective-risk threshold is calibrated on the **ID** calib fold and applied to the **OOD**
+test fold (magnitude shift `ood_max_operand`, OOD acc 0.21). At α=0.1 the achieved selective risk is
+**0.075 ID (valid) vs 0.762 OOD** — the ID-calibrated threshold answers 66% of OOD inputs at 76%
+error, so the guarantee is void once exchangeability breaks. F6 plots achieved-vs-target risk: ID on
+the diagonal, OOD far above. This is the concrete argument for abstention/shift-detection in
+critical systems (the guarantees are *marginal under exchangeability*, by design). **F5** shows the
+mechanism: basin-agreement features (entropy, ρ) separate correct from incorrect best on arithmetic;
+curvature separates weakly here — reported honestly.
 
 ## Operating regime
 

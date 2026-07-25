@@ -161,6 +161,102 @@ def coverage_validity(rows: list[dict[str, Any]], out_path: str) -> str:  # F3
     return out_path
 
 
+_FAMILY_COLOR = {"basin": "#5aa469", "energy": "#b0794a", "curv": "#1b6ca8", "dynamics": "#a05195"}
+
+
+def _family(name: str) -> str:
+    key = name.split("/")[0]
+    return "curv" if key == "curv" else key
+
+
+def _bars_from_hist(h: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+    """Return ``(centers, correct_density, incorrect_density, width)`` from a stored histogram."""
+    edges = np.asarray(h["edges"], dtype=float)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    c = np.asarray(h["correct_counts"], dtype=float)
+    i = np.asarray(h["incorrect_counts"], dtype=float)
+    c = c / c.sum() if c.sum() else c                     # per-class density (class-balanced view)
+    i = i / i.sum() if i.sum() else i
+    return centers, c, i, float(edges[1] - edges[0])
+
+
+def feature_diagnostics(rows: list[dict[str, Any]], out_path: str) -> str:  # F5
+    """Per-feature separation + the correct-vs-incorrect distributions of the mechanism features.
+
+    Left: |AUROC−0.5| per feature (distance from chance), coloured by family. Right: overlaid
+    correct/incorrect histograms of the most-separating basin and curvature features — the geometry
+    signal the thesis rests on. Reads ``feature_diagnostics`` from the headline selective row.
+    """
+    import matplotlib.pyplot as plt
+
+    fd = _selective_row(rows).get("feature_diagnostics")
+    if fd is None:
+        raise ValueError("no feature_diagnostics on the selective row; re-run run_experiment.py")
+    use_style()
+    names = fd["names"]
+    sep = {n: abs(fd["auroc"][n] - 0.5) for n in names}
+    order = sorted(names, key=lambda n: sep[n])            # ascending -> strongest at top
+
+    def top(family: str) -> str:
+        fam = [n for n in names if _family(n) == family]
+        return max(fam, key=lambda n: sep[n]) if fam else names[0]
+
+    fig, (ax0, ax1, ax2) = plt.subplots(
+        1, 3, figsize=(11.0, 4.2), gridspec_kw={"width_ratios": [1.5, 1, 1]})
+
+    ax0.barh(range(len(order)), [sep[n] for n in order],
+             color=[_FAMILY_COLOR[_family(n)] for n in order])
+    ax0.set_yticks(range(len(order)))
+    ax0.set_yticklabels(order, fontsize=7)
+    ax0.set_xlabel("|AUROC − 0.5|  (correct-vs-incorrect separation)")
+    ax0.set_title("F5 · which geometry features separate")
+
+    for ax, family in ((ax1, "basin"), (ax2, "curv")):
+        name = top(family)
+        centers, c, i, w = _bars_from_hist(fd["hist"][name])
+        ax.bar(centers, c, width=w, color="#1b6ca8", alpha=0.6, label="correct")
+        ax.bar(centers, i, width=w, color="#d1495b", alpha=0.6, label="incorrect")
+        ax.set_title(f"{name}\n(AUROC {fd['auroc'][name]:.2f})", fontsize=9)
+        ax.set_xlabel("feature value")
+        ax.set_ylabel("density")
+        ax.legend(fontsize=7, frameon=False)
+
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)
+    return out_path
+
+
+def ood_stress(rows: list[dict[str, Any]], out_path: str) -> str:  # F6
+    """Selective-risk validity in-distribution vs under distribution shift.
+
+    The LTT threshold is calibrated ID; achieved risk vs target α is plotted for the ID test fold
+    (on/below the diagonal = valid) and the OOD test fold (above the diagonal = the guarantee breaks
+    because exchangeability is violated). This is the argument for abstention/routing in critical
+    systems. Reads ``ood_validity`` from the headline selective row.
+    """
+    import matplotlib.pyplot as plt
+
+    v = _selective_row(rows).get("ood_validity")
+    if v is None:
+        raise ValueError("no ood_validity on the selective row; re-run with include_ood=True")
+    use_style()
+    lim = max(v["target"]) * 1.1
+    fig, ax = plt.subplots(figsize=(4.8, 4.2))
+    ax.plot([0, lim], [0, lim], ls="--", color="0.6", lw=1.0, label="valid (achieved ≤ target)")
+    ax.plot(v["target"], v["id_risk"], "-o", color="#1b6ca8", lw=1.8, label="in-distribution")
+    ax.plot(v["target"], v["ood_risk"], "-s", color="#d1495b", lw=1.8, label="out-of-distribution")
+    ax.set_xlabel("target selective risk α")
+    ax.set_ylabel("achieved selective risk (test)")
+    ax.set_title("F6 · guarantee holds ID, breaks under shift")
+    ax.set_xlim(0, lim)
+    ax.set_ylim(0, max(1.0, max(v["ood_risk"]) * 1.05) if v["ood_risk"] else 1.0)
+    ax.legend(fontsize=7, frameon=False, loc="upper left")
+    fig.savefig(out_path)
+    plt.close(fig)
+    return out_path
+
+
 def halting_pareto(rows: list[dict[str, Any]], out_path: str) -> str:  # F4
     """Compute-vs-accuracy Pareto under adaptive halting.
 
