@@ -31,31 +31,35 @@
   `paper/tables/*.tex`), and the S1 K-lift figure. **S1 ran (5 seeds × K∈{1,2,4,8,16}):** the ΔAURC
   lift grows monotonically with K — K=1 (≈EBT) separates on only 1/5 seeds, K≥8 on 5/5. The
   restart geometry is the mechanism; the "K>1 gives no lift" falsifier does not fire. See EXPERIMENTS.md.
-- **Deferred / Phases 4b–5: stubbed.** Adaptive halting (`halting.adaptive`) + F4, F5 feature-
-  distribution diagnostic, graph/logic/hard tasks + F6, Modal runner, ≥5-seed full-fold E1 for T1.
+- **Phase 4b (adaptive halting — the second guarantee): ✅** opt-in per-step decoding
+  (`optimizer.record_z` → `restarts.solve(record_steps=)` → `TrajectoryRecord.step_pred`),
+  `halting.adaptive` (basin-agreement policy + CRC calibration via the built `crc.calibrate`,
+  `λ=1−τ`), `eval.evaluate_halting`, `experiments/run_halting.py`, F4 in plotting/make_figures.
+  **H1 ran:** CRC τ̂=0.917 saves **57.8% compute** at halting risk **0.9% ≤ α=0.1**, no accuracy
+  loss, risk monotone in τ. Both guarantees now live (LTT abstention + CRC halting).
+- **Deferred / Phases 4c–5: stubbed.** F5 feature-distribution diagnostic, graph/logic/hard tasks +
+  F6 OOD stress, Modal runner, ≥5-seed full-fold E1 for T1.
 
 ## What is real vs stub
 
 - Real: config/seeding/ledger, arithmetic task (+`ood_max_operand` magnitude shift),
-  energy/encoder/decoder, Langevin optimizer+restarts, training loop, curvature HVP/λ_max/trace +
-  batched wrapper, **all geometry features + assembly**, `single_feature_auroc`, `edc.cli geometry`;
-  **the full selective-prediction stack**: AURC/ΔAURC, nonconformity mapper, split-conformal/LTT/CRC,
-  `eval.evaluate`, `run_experiment.py`, F2/F3.
-  `eval.evaluate`, `run_experiment.py`, F2/F3; **the sweep/aggregation/tables stack**:
-  `run_sweep.py`, `analysis.aggregate`, `make_tables` (T1–T3), S1 K-lift figure.
-- Stub: `halting.adaptive` + F4, F5 feature-distribution diagnostic, graph/logic/hard tasks,
-  Modal runner.
+  energy/encoder/decoder, Langevin optimizer+restarts (opt-in per-step decode), training loop,
+  curvature HVP/λ_max/trace + batched wrapper, **all geometry features + assembly**,
+  `single_feature_auroc`, `edc.cli geometry`; **the full selective-prediction stack**: AURC/ΔAURC,
+  nonconformity mapper, split-conformal/LTT/CRC, `eval.evaluate`, `run_experiment.py`, F2/F3;
+  **the sweep/aggregation/tables stack**: `run_sweep.py`, `analysis.aggregate`, `make_tables`
+  (T1–T3), S1 K-lift figure; **adaptive halting**: `halting.adaptive`, `eval.evaluate_halting`,
+  `run_halting.py`, F4.
+- Stub: F5 feature-distribution diagnostic, graph/logic/hard tasks, Modal runner, `make_tables`
+  cross-task rows.
 
-## Next steps (Phase 4b)
+## Next steps (Phase 4c)
 
-1. **Adaptive halting (F4):** add per-step decoded answers to `TrajectoryRecord` (optimizer emits
-   `z` per scan step → decode per step), implement `halting.adaptive.halting_policy` consuming the
-   already-built + tested `crc.calibrate`, emit the compute-vs-accuracy Pareto.
-2. **Full-fold ≥5-seed E1 for T1:** the sweep's T1 uses reduced folds (n_test=600) at K=16; add a
+1. **Full-fold ≥5-seed E1 for T1:** the sweep's T1 uses reduced folds (n_test=600) at K=16; add a
    seed sweep at the full E1 config (n_test=1500) for the headline table.
-3. **More tasks + OOD stress (F6):** graph planning / logic / hard sudoku; the magnitude-shift OOD
+2. **More tasks + OOD stress (F6):** graph planning / logic / hard sudoku; the magnitude-shift OOD
    (`ood_max_operand`) is wired — extend `evaluate` to report the guarantee *breaking* under shift.
-4. **F5 mechanism diagnostic:** store per-feature correct-vs-incorrect summaries in `evaluate` and
+3. **F5 mechanism diagnostic:** store per-feature correct-vs-incorrect summaries in `evaluate` and
    plot basin/curvature distributions.
 
 ## Operating regime note

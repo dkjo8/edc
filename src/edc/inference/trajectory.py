@@ -21,6 +21,7 @@ class TrajectoryRecord:
     logits: Array         # (B, K, C)   decoder logits at z_star
     pred: Array           # (B, K)      argmax class per restart
     h_x: Array            # (B, dc)     per-input context; needed to recompute curvature at z*
+    step_pred: Array | None = None  # (B, K, T+1) per-step decode; set by solve(record_steps=True)
 
     @property
     def terminal_energy(self) -> Array:

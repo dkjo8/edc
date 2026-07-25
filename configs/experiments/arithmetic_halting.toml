@@ -1,0 +1,37 @@
+# Adaptive-halting experiment (Phase 4b, F4). Same task/inference as the selective E1 config, but
+# per-step decoding is recorded (restarts.solve(record_steps=True)), so folds are kept modest to
+# bound the extra decode memory on CPU. CRC calibrates the basin-agreement halting threshold at the
+# alpha error budget; F4 is the compute-vs-accuracy Pareto.
+[run]
+task = "arithmetic"
+seed = 0
+notes = "F4 adaptive-halting run"
+
+[task.arithmetic]
+modular = false
+n_operands = 6
+ood_n_operands = 6
+max_operand = 7
+ood_max_operand = 9
+
+[model]
+latent_dim = 32
+hidden_dim = 128
+context_dim = 64
+
+[inference]
+k_restarts = 12
+steps = 50
+
+[train]
+epochs = 7
+n_train = 6000
+n_neg = 4
+
+[eval]
+n_eval = 800        # test fold (per-step decode kept small)
+
+[conformal]
+alpha = 0.1         # halting error budget: E[early answer != full answer] <= alpha
+delta = 0.05
+n_calib = 800       # calibration fold

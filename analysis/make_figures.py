@@ -18,6 +18,7 @@ FIG_DIR = Path(__file__).resolve().parent / "figures"
 _FIGURES = [
     ("F2_risk_coverage.png", plotting.risk_coverage_curve),
     ("F3_coverage_validity.png", plotting.coverage_validity),
+    ("F4_halting_pareto.png", plotting.halting_pareto),
     ("S1_k_restart_lift.png", plotting.k_restart_lift),
 ]
 

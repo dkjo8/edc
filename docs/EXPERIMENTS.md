@@ -12,6 +12,7 @@ Every experiment: config file → purpose → expected figure/table → status. 
 | E3 | (logic) | Same on logic | F2, T1 | ⏳ Phase 4 |
 | E4 | (hard sudoku) | Stronger-result task, OOD split | F2, F6, T1 | ⏳ Phase 4 |
 | S1 | `configs/sweeps/k_restarts.toml` | K=1..16: does restart geometry add signal? | S1 fig, T2 | ✅ Phase 4a |
+| H1 | `configs/experiments/arithmetic_halting.toml` | Adaptive halting: CRC compute-vs-accuracy | F4 | ✅ Phase 4b |
 | A1 | (ablation grid) | Feature-group leave-one-out; τ, curvature fidelity | T2 | ⏳ Phase 4 |
 
 ## Figures → claims (mirrored in `paper/README.md`)
@@ -54,6 +55,17 @@ K=1 — a single descent with no basin geometry (≈ the EBT baseline) — barel
 the **restart** geometry is what carries the signal. This confirms the secondary falsifier does *not*
 fire: K>1 gives clear lift over K=1. (T2 also lists a K=12 row from the two full-fold E1 runs, which
 sits on the same trend.) Regenerate T1/T2/T3 with `make tables`, the figure with `make figures`.
+
+## Adaptive halting — the second guarantee (H1 → F4)
+
+`L(τ) = 1[early-stopped best-of-N answer ≠ full-budget best-of-N answer]`, stopping when basin
+agreement crosses τ; CRC picks the most compute-saving τ with `E[L] ≤ α`.
+
+**H1 result (2026-07-25, run_id `685d46f13e58`, seed 0):** CRC chose τ̂=0.917 at α=0.1 and the
+empirical risk was **monotone in τ** (CRC's assumption held). At that operating point the descent
+uses **42% of the step budget (57.8% compute saved)** with a halting risk of **0.9% ≤ α=10%** and
+**no accuracy loss** (full 0.804 → halted 0.807). F4 is the compute-vs-accuracy Pareto; the CRC
+point sits at the elbow. Both guarantees are now live: LTT abstention (E1) and CRC halting (H1).
 
 ## Operating regime
 

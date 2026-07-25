@@ -2,6 +2,25 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-25 — Phase 4b: adaptive halting — opt-in per-step decodes, basin-agreement signal, λ=1−τ
+**Decision:** Adaptive halting stops the descent when **basin agreement** (plurality fraction of
+decoded answers across restarts) at a step crosses a threshold τ; the halting loss
+`L = 1[early best-of-N ≠ full-budget best-of-N]` is CRC-calibrated via the existing
+`conformal.crc.calibrate`. Three implementation choices: (1) per-step decoding is **opt-in**
+(`langevin_descent(record_z=…)` → `restarts.solve(record_steps=…)` → optional
+`TrajectoryRecord.step_pred`), so E1/sweep pay nothing and the descent is byte-identical with it off;
+(2) the halting signal is **basin agreement** — the method's own geometry signal, not an ad-hoc
+grad-norm proxy; (3) `halting.adaptive.calibrate` reparametrises **`lambda = 1 − tau`** so ascending
+λ = lower agreement bar = stop earlier = weakly more errors + more compute saved, matching
+`crc.calibrate`'s "largest admissible λ = most compute saved", and returns `tau_hat = 1 − lambda_hat`.
+**Why:** confines JAX to the core (invariant 1), keeps the common paths cheap, and reuses the
+tested CRC calibrator unchanged. **Monotonicity caveat:** CRC assumes risk monotone in the
+threshold; `L(τ)` is monotone only in the limit (answers can flip), so `evaluate_halting` reports
+the risk-vs-τ curve + a `risk_monotone_in_tau` flag, and `crc.calibrate` scans conservatively (no
+cherry-picking dips). If materially non-monotone, LTT (already built) is the rigorous fallback —
+we do not silently claim CRC validity. **Reversible?** Yes — `record_steps` defaults off; the
+signal/threshold live behind `halting.adaptive`.
+
 ## 2026-07-25 — Phase 4a: sweep harness (override+grid), reduced folds, multi-seed ΔAURC aggregation
 **Decision:** `experiments/run_sweep.py` expands a `[sweep.grid]` of dotted keys (cartesian) over a
 `base` config, with optional constant `[sweep.override]`; every cell reuses `run_experiment.run_and_append`

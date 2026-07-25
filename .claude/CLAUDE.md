@@ -31,5 +31,7 @@ inference-time descent** into distribution-free reliability certificates. Read
   excludes 0; F2/F3 regenerate from the ledger).
 - Phase 4a robustness + K-ablation ✅ (`run_sweep` + `aggregate` + `make_tables` T1/T2/T3 + S1
   K-lift figure; S1: geometry lift grows monotonically with restarts, K=1≈EBT barely separates).
-- Phase 4b halting/F4 · more tasks/OOD/F6 · Modal · Phase 5 paper — stubbed, `NotImplementedError`
-  with a phase note until built.
+- Phase 4b adaptive halting ✅ (opt-in per-step decode + `halting.adaptive` CRC + F4; H1: ~58%
+  compute saved at halting risk ≤ α, no accuracy loss). Both guarantees now live.
+- Phase 4c more tasks/OOD/F6 · F5 diagnostic · full-fold T1 · Modal · Phase 5 paper — stubbed,
+  `NotImplementedError` with a phase note until built.

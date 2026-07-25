@@ -54,6 +54,14 @@ def _selective_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return headline["metrics"]
 
 
+def _halting_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Metrics of the latest ``split == 'halting'`` run for F4 (raises if none)."""
+    sel = [r for r in rows if r.get("split") == "halting"]
+    if not sel:
+        raise ValueError("no split='halting' ledger row; run experiments/run_halting.py first")
+    return sel[-1]["metrics"]
+
+
 def risk_coverage_curve(rows: list[dict[str, Any]], out_path: str) -> str:  # F2
     """Risk-coverage curves per nonconformity score — the core selective-prediction result.
 
@@ -148,6 +156,38 @@ def coverage_validity(rows: list[dict[str, Any]], out_path: str) -> str:  # F3
     ax.set_xlim(0, lim)
     ax.set_ylim(0, lim)
     ax.legend(fontsize=7, frameon=False)
+    fig.savefig(out_path)
+    plt.close(fig)
+    return out_path
+
+
+def halting_pareto(rows: list[dict[str, Any]], out_path: str) -> str:  # F4
+    """Compute-vs-accuracy Pareto under adaptive halting.
+
+    Sweeps the agreement threshold τ: end-task accuracy (y) vs mean fraction of the step budget
+    used (x). Marks the CRC-chosen operating point (guaranteed halting risk ≤ α) and the full-budget
+    reference. Reads the latest ``split=='halting'`` ledger row (invariant 6).
+    """
+    import matplotlib.pyplot as plt
+
+    use_style()
+    m = _halting_row(rows)
+    s = m["tau_sweep"]
+    fig, ax = plt.subplots(figsize=(5.2, 4.0))
+    ax.plot(s["compute_used"], s["accuracy"], "-o", color="#1b6ca8", lw=1.8, ms=4,
+            label="halting τ-sweep", zorder=2)
+    ax.axhline(m["full_accuracy"], ls="--", color="0.6", lw=1.0,
+               label=f"full-budget acc {m['full_accuracy']:.2f}")
+    if m["tau_hat"] is not None:
+        lbl = (f"CRC τ̂={m['tau_hat']:.2f} (risk {m['halting_risk']:.2f} ≤ α={m['alpha']}), "
+               f"{m['compute_saved']:.0%} compute saved")
+        ax.scatter([m["compute_used"]], [m["halted_accuracy"]], color="#d1495b", s=70, zorder=3,
+                   label=lbl)
+    ax.set_xlabel("compute used (fraction of step budget)")
+    ax.set_ylabel("end-task accuracy")
+    ax.set_title("F4 · adaptive halting: accuracy vs compute")
+    ax.set_xlim(0, 1.02)
+    ax.legend(fontsize=7, frameon=False, loc="lower right")
     fig.savefig(out_path)
     plt.close(fig)
     return out_path
