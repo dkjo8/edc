@@ -13,15 +13,24 @@ import numpy as np
 from edc.ledger import read_all
 
 
-def selective_rows(rows: list[dict] | None = None) -> list[dict]:
-    """Latest ``split=='selective'`` row per ``(config_hash, seed)`` (cf. latest_per_config)."""
+def selective_rows(rows: list[dict] | None = None, task: str | None = None) -> list[dict]:
+    """Latest ``split=='selective'`` row per ``(config_hash, seed)`` (cf. latest_per_config).
+
+    ``task`` filters to one reasoning family (``row["task"]``) so multi-task ledgers do not
+    cross-contaminate per-K aggregates.
+    """
     if rows is None:
         rows = read_all()
     latest: dict[tuple[str, int], dict] = {}
     for r in rows:
-        if r.get("split") == "selective":
+        if r.get("split") == "selective" and (task is None or r.get("task") == task):
             latest[(r["config_hash"], r["seed"])] = r  # later rows win
     return list(latest.values())
+
+
+def tasks_present(rows: list[dict] | None = None) -> list[str]:
+    """Sorted distinct task names among selective rows."""
+    return sorted({r.get("task") for r in selective_rows(rows)} - {None})
 
 
 def _k(row: dict) -> int:
@@ -29,10 +38,10 @@ def _k(row: dict) -> int:
     return int(m.get("k_restarts", row["config"]["inference"]["k_restarts"]))
 
 
-def by_k(rows: list[dict] | None = None) -> dict[int, list[dict]]:
-    """Group selective rows by ``k_restarts`` (ascending)."""
+def by_k(rows: list[dict] | None = None, task: str | None = None) -> dict[int, list[dict]]:
+    """Group selective rows by ``k_restarts`` (ascending), optionally filtered to one ``task``."""
     out: dict[int, list[dict]] = {}
-    for r in selective_rows(rows):
+    for r in selective_rows(rows, task=task):
         out.setdefault(_k(r), []).append(r)
     return dict(sorted(out.items()))
 
@@ -52,6 +61,7 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
     geo_mean, geo_std = _ms([m["aurc"]["geometry"] for m in ms])
     best_mean, best_std = _ms([m["aurc"][m["best_energy_baseline"]] for m in ms])
     return {
+        "task": rows_for_k[0].get("task"),
         "k_restarts": _k(rows_for_k[0]),
         "n_seeds": n,
         "seeds": sorted(r["seed"] for r in rows_for_k),
@@ -69,6 +79,6 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
     }
 
 
-def aggregate_by_k(rows: list[dict] | None = None) -> dict[int, dict]:
-    """``{K: aggregate_cell(...)}`` for every K present in the ledger."""
-    return {k: aggregate_cell(v) for k, v in by_k(rows).items()}
+def aggregate_by_k(rows: list[dict] | None = None, task: str | None = None) -> dict[int, dict]:
+    """``{K: aggregate_cell(...)}`` for every K present (optionally filtered to one ``task``)."""
+    return {k: aggregate_cell(v) for k, v in by_k(rows, task=task).items()}

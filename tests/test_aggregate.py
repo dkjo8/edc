@@ -6,10 +6,10 @@ Offline + CPU-only, on hand-built synthetic ledger rows (no training).
 import aggregate
 
 
-def _row(k, seed, delta, lo, geo=0.08, best=0.14):
+def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic"):
     return {
-        "run_id": f"r{k}_{seed}", "seed": seed, "split": "selective",
-        "config_hash": f"h{k}_{seed}", "git_sha": "abc1234",
+        "run_id": f"{task[:3]}{k}_{seed}", "seed": seed, "split": "selective", "task": task,
+        "config_hash": f"{task}h{k}_{seed}", "git_sha": "abc1234",
         "env": {"python": "3.12", "jax": "0.11", "jax_backend": "cpu"},
         "config": {"inference": {"k_restarts": k}},
         "metrics": {
@@ -44,3 +44,18 @@ def test_aggregate_cell_verdict():
     assert a16["seeds_ci_excludes_0"] == 5 and a16["geometry_wins_all"] is True
     assert a16["delta_aurc"][0] > a1["delta_aurc"][0]           # lift grows with K
     assert a16["aurc_geometry"][0] < a16["aurc_best_energy"][0]  # geometry lower AURC = better
+
+
+def test_task_filter_no_cross_contamination():
+    # Two tasks share K=12 in the ledger; aggregation must not mix them.
+    rows = [_row(12, s, 0.08, 0.06, task="arithmetic") for s in range(3)]
+    rows += [_row(12, s, 0.02, -0.02, task="graph_planning") for s in range(4)]
+    assert aggregate.tasks_present(rows) == ["arithmetic", "graph_planning"]
+
+    ar = aggregate.aggregate_by_k(rows, task="arithmetic")[12]
+    gr = aggregate.aggregate_by_k(rows, task="graph_planning")[12]
+    assert ar["n_seeds"] == 3 and gr["n_seeds"] == 4
+    assert ar["task"] == "arithmetic" and gr["task"] == "graph_planning"
+    assert ar["delta_aurc"][0] != gr["delta_aurc"][0]           # distinct aggregates
+    # unfiltered mixes both (7 rows at K=12) — the bug the filter prevents
+    assert aggregate.aggregate_by_k(rows)[12]["n_seeds"] == 7

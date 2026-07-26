@@ -104,13 +104,24 @@ def k_restart_lift(rows: list[dict[str, Any]], out_path: str) -> str:  # S1 / T2
     import matplotlib.pyplot as plt
 
     use_style()
-    by_k: dict[int, list[float]] = {}
-    for r in rows:
-        if r.get("split") != "selective":
-            continue
+    # Restrict to the single task that actually has a K-sweep, so a second task's fixed-K rows
+    # cannot contaminate the ablation (the K-sweep is run on arithmetic).
+    sel = [r for r in rows if r.get("split") == "selective"]
+
+    def _k(r):
         m = r["metrics"]
-        k = int(m.get("k_restarts", r["config"]["inference"]["k_restarts"]))
-        by_k.setdefault(k, []).append(m["delta_aurc_vs_best_energy"][0])
+        return int(m.get("k_restarts", r["config"]["inference"]["k_restarts"]))
+
+    per_task_ks: dict[str, set] = {}
+    for r in sel:
+        per_task_ks.setdefault(r.get("task"), set()).add(_k(r))
+    sweep_task = max(per_task_ks, key=lambda t: len(per_task_ks[t])) if per_task_ks else None
+
+    by_k: dict[int, list[float]] = {}
+    for r in sel:
+        if r.get("task") != sweep_task:
+            continue
+        by_k.setdefault(_k(r), []).append(r["metrics"]["delta_aurc_vs_best_energy"][0])
     if len(by_k) < 2:
         raise ValueError("k_restart_lift needs >=2 distinct K in the ledger (run the K-sweep)")
 

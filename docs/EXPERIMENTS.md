@@ -8,7 +8,7 @@ Every experiment: config file → purpose → expected figure/table → status. 
 | E0 | `configs/smoke.toml` | Liveness: train→K-restart infer→decode on CPU <60s | ledger row | ✅ Phase 1 |
 | D1 | `configs/smoke.toml` (`edc.cli geometry`) | Per-feature correct-vs-incorrect AUROC, geometry vs raw energy — F5 precursor | ledger row | ✅ Phase 2 |
 | E1 | `configs/experiments/arithmetic_selective.toml` | Geometry vs baselines, selective prediction on arithmetic | F2, F3, T1 | ✅ Phase 3 |
-| E2 | (graph) | Same on graph planning | F2, T1 | ⏳ Phase 4 |
+| E2 | `configs/experiments/graph_selective.toml` (+`sweeps/graph_seeds.toml`) | Generalization: geometry vs energy on graph shortest-path | T1 | ✅ Phase 4d |
 | E3 | (logic) | Same on logic | F2, T1 | ⏳ Phase 4 |
 | E4 | (hard sudoku) | Stronger-result task, OOD split | F2, F6, T1 | ⏳ Phase 4 |
 | S1 | `configs/sweeps/k_restarts.toml` | K=1..16: does restart geometry add signal? | S1 fig, T2 | ✅ Phase 4a |
@@ -77,6 +77,17 @@ the diagonal, OOD far above. This is the concrete argument for abstention/shift-
 critical systems (the guarantees are *marginal under exchangeability*, by design). **F5** shows the
 mechanism: basin-agreement features (entropy, ρ) separate correct from incorrect best on arithmetic;
 curvature separates weakly here — reported honestly.
+
+## E2 — generalization to a second reasoning family (graph shortest-path)
+
+Does the discovery replicate beyond additive arithmetic? Graph shortest-path length (BFS label,
+larger-graph OOD) is a relational/combinatorial family; tuned to ID ≈ 0.70 (majority baseline ≈ 0.41).
+**Result (2026-07-26, 5 seeds, `sweeps/graph_seeds.toml`):** geometry beats the best raw-energy
+baseline on **5/5 seeds** — AURC 0.159 vs 0.270, `ΔAURC = +0.111 ± 0.054`, every seed's 95% CI
+excludes 0. Alongside arithmetic (ΔAURC +0.083 ± 0.034, 5/5), the T1 table now shows the discovery
+holds across **two structurally distinct tasks** — it is not an arithmetic artifact. (Caveat: on
+graph the LTT abstention at α=0.1 with reduced calib folds certifies zero coverage — conservative,
+not a failure; ΔAURC, the threshold-free ranking metric, is the generalization evidence.)
 
 ## Operating regime
 

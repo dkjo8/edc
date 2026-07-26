@@ -35,5 +35,7 @@ inference-time descent** into distribution-free reliability certificates. Read
   compute saved at halting risk ≤ α, no accuracy loss). Both guarantees now live.
 - Phase 4c arithmetic figure set complete ✅ (F5 mechanism + F6 OOD stress; F6: selective risk
   0.075 ID vs 0.762 OOD — guarantee breaks under shift, motivating abstention).
-- Phase 4d 2nd task (E2 graph/logic) · full-fold T1 · Modal · Phase 5 paper — stubbed,
+- Phase 4d generalization ✅ (graph shortest-path task; E2: geometry beats energy 5/5 seeds,
+  ΔAURC +0.111 — discovery replicates on a 2nd structurally distinct family; per-task T1).
+- Phase 4e logic/sudoku (E3/E4) · full-fold T1 · Modal · Phase 5 paper — stubbed,
   `NotImplementedError` with a phase note until built.

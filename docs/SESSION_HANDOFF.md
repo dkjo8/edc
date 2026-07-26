@@ -42,26 +42,32 @@
   + `plotting.ood_stress`; F5/F6 in make_figures. **F6:** at α=0.1 selective risk is 0.075 ID (valid)
   vs **0.762 OOD** — the guarantee breaks under shift, motivating abstention. **F5:** basin-agreement
   features separate correct/incorrect best; curvature weak on arithmetic (reported honestly).
-- **Deferred / Phases 4d–5: stubbed.** Generalization to a 2nd task (E2 graph/logic — EBRM generator
-  port + retuning), ≥5-seed full-fold E1 for T1, Modal runner, paper write-up.
+- **Phase 4d (generalization — 2nd task): ✅** `GraphPlanningTask` (BFS shortest-path, larger-graph
+  OOD; `tasks/graph_planning.py`), task-aware `analysis.aggregate` + per-task `make_tables` T1,
+  `configs/experiments/graph_selective.toml` + `sweeps/graph_seeds.toml`. **E2 (5 seeds):** geometry
+  beats energy on **5/5 seeds**, ΔAURC +0.111±0.054 (vs arithmetic +0.083±0.034) — the discovery
+  replicates on a structurally distinct family. `plotting.k_restart_lift` made task-aware so graph's
+  fixed-K rows don't contaminate the arithmetic S1 figure.
+- **Deferred / Phases 4e–5: stubbed.** More tasks (logic/sudoku E3/E4), ≥5-seed full-fold E1 for T1,
+  Modal runner, paper write-up.
 
 ## What is real vs stub
 
-- Real: config/seeding/ledger, arithmetic task (+`ood_max_operand` magnitude shift),
-  energy/encoder/decoder, Langevin optimizer+restarts (opt-in per-step decode), training loop,
+- Real: config/seeding/ledger, arithmetic task (+`ood_max_operand` shift) + **graph shortest-path
+  task** (size-shift OOD), energy/encoder/decoder, Langevin optimizer+restarts (opt-in per-step
+  decode), training loop,
   curvature HVP/λ_max/trace + batched wrapper, **all geometry features + assembly**,
   `single_feature_auroc`, `edc.cli geometry`; **the full selective-prediction stack**: AURC/ΔAURC,
   nonconformity mapper, split-conformal/LTT/CRC, `eval.evaluate`, `run_experiment.py`, F2/F3;
   **the sweep/aggregation/tables stack**: `run_sweep.py`, `analysis.aggregate`, `make_tables`
   (T1–T3), S1 K-lift figure; **adaptive halting**: `halting.adaptive`, `eval.evaluate_halting`,
   `run_halting.py`, F4; **F5 mechanism + F6 OOD stress** (`feature_diagnostics`, `ood_validity`).
-- Stub: graph/logic/hard tasks (E2–E4), Modal runner, `make_tables` cross-task rows, paper write-up.
+- Stub: logic/hard tasks (E3/E4), Modal runner, paper write-up.
 
-## Next steps (Phase 4d)
+## Next steps (Phase 4e)
 
-1. **Generalize to a 2nd task (E2):** port the EBRM graph-planning or logic generator into
-   `tasks/{graph_planning,logic}.py` (fixed feature_dim, ID/OOD splits), tune to the 70–85% regime,
-   and re-run E1/S1/halting — the discovery's generalization claim (the biggest remaining result).
+1. **Third task (E3, logic/SAT) or hard sudoku (E4):** more generalization evidence; same pattern
+   as `graph_planning.py` (implement `tasks/logic.py`, tune, run the seed sweep — T1 gains a row).
 2. **Full-fold ≥5-seed E1 for T1:** the sweep's T1 uses reduced folds (n_test=600) at K=16; add a
    seed sweep at the full E1 config (n_test=1500) for the headline table.
 3. **Paper write-up:** the figure set (F2–F6, S1) and tables (T1–T3) are complete for arithmetic;

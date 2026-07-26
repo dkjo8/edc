@@ -2,6 +2,20 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-26 — Phase 4d: second task (graph shortest-path) + task-aware aggregation
+**Decision:** the generalization task is **graph shortest-path length** (`tasks/graph_planning.py`):
+random Erdős–Rényi graph, random `(source, target)`, label = BFS shortest-path length capped at
+`max_len` (class 0 = unreachable/farther). Fixed `feature_dim` via `max_nodes` padding (flattened
+adjacency ⊕ source/target one-hots) so one model spans the ID split (`n_nodes`) and the
+size-generalization OOD (`ood_n_nodes` > it). Tuned to ID ≈ 0.72 (majority-class baseline ≈ 0.41 →
+real learning) via `n_nodes=7, edge_prob=0.4, max_len=4, epochs=25`. `analysis/aggregate.py` gains a
+`task` filter (and `tasks_present`) so multi-task ledgers do not cross-contaminate per-K aggregates;
+`make_tables` T1 is now one row per task. **Why:** a relational/combinatorial family maximally
+distinct from additive arithmetic is the strongest generalization test; edge density is the cleanest
+difficulty knob (denser → shorter, more learnable paths); larger graphs are a natural covariate
+shift. The whole E1 pipeline is task-agnostic, so the task rides `evaluate`/`run_sweep` unchanged.
+**Reversible?** Yes — additive task + optional aggregation arg; arithmetic results untouched.
+
 ## 2026-07-25 — Phase 4c: F6 exhibits the guarantee breaking OOD; F5 stores compact diagnostics
 **Decision:** F6 (OOD stress) is produced by calibrating the LTT selective-risk threshold on the
 **ID** calibration fold and then evaluating the achieved risk on the **OOD** test fold across the

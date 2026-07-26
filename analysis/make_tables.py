@@ -12,9 +12,9 @@ from edc.config import REPO_ROOT
 from edc.ledger import read_all
 
 try:  # sibling import when run as a script (analysis/ on sys.path)
-    from aggregate import aggregate_by_k, selective_rows
+    from aggregate import aggregate_by_k, selective_rows, tasks_present
 except ImportError:  # pragma: no cover
-    from analysis.aggregate import aggregate_by_k, selective_rows
+    from analysis.aggregate import aggregate_by_k, selective_rows, tasks_present
 
 TABLE_DIR = REPO_ROOT / "paper" / "tables"
 
@@ -41,26 +41,26 @@ def _tabular(header: list[str], rows: list[list[str]], colspec: str, caption: st
     return "\n".join(lines)
 
 
-def _t1(agg: dict[int, dict], primary_k: int) -> str:
-    a = agg[primary_k]
-    verdict = ("geometry beats energy" if a["geometry_wins_all"]
-               else f"{a['seeds_ci_excludes_0']}/{a['n_seeds']} seeds separate")
-    rows = [
-        ["ID accuracy", _pm(a["accuracy_id"])],
-        ["AURC geometry (lower better)", _pm(a["aurc_geometry"])],
-        [f"AURC best energy ({_esc('/'.join(a['best_energy_names']))})",
-         _pm(a["aurc_best_energy"])],
-        [r"$\Delta$AURC (energy $-$ geometry)", _pm(a["delta_aurc"])],
-        ["seeds with 95\\% CI excluding 0", f"{a['seeds_ci_excludes_0']} / {a['n_seeds']}"],
-        ["LTT coverage", _pm(a["ltt_coverage"])],
-        ["LTT abstention rate", _pm(a["ltt_abstain_rate"])],
-        ["LTT selective risk ($\\alpha=0.1$)", _pm(a["ltt_selective_risk"])],
-    ]
+def _t1(rows: list[dict]) -> str:
+    """Main results, one row per task (each at its own primary K, aggregated over seeds)."""
+    body, all_ids = [], []
+    for task in tasks_present(rows):
+        agg = aggregate_by_k(rows, task=task)
+        a = agg[max(agg)]                                  # primary K = largest for that task
+        win = f"{a['seeds_ci_excludes_0']}/{a['n_seeds']}"
+        body.append([
+            _esc(task), str(a["k_restarts"]), _pm(a["accuracy_id"], 2), _pm(a["aurc_geometry"]),
+            _pm(a["aurc_best_energy"]), _pm(a["delta_aurc"]), win, _pm(a["ltt_coverage"], 2),
+        ])
+        all_ids += a["run_ids"]
+    header = ["task", "$K$", "acc", "AURC geom", "AURC energy", r"$\Delta$AURC", "seeds win",
+              "LTT cov"]
     return _tabular(
-        ["metric", "value"], rows, "lr",
-        f"Main selective-prediction results on arithmetic ($K={primary_k}$, "
-        f"{a['n_seeds']} seeds): {verdict}.",
-        "tab:main", f"run_ids={a['run_ids']}")
+        header, body, "lrcccccc",
+        "Main selective-prediction results across reasoning families: geometry vs the best "
+        "raw-energy baseline (mean$\\pm$std over seeds). $\\Delta$AURC $>0$ with the CI clearing 0 "
+        "means geometry wins.",
+        "tab:main", f"run_ids={all_ids}")
 
 
 def _t2(agg: dict[int, dict]) -> str:
@@ -97,22 +97,24 @@ def _t3(rows: list[dict]) -> str:
 
 def main() -> int:
     rows = read_all()
-    agg = aggregate_by_k(rows)
-    print(f"[tables] {len(rows)} ledger rows; K values = {sorted(agg)}")
-    if not agg:
+    tasks = tasks_present(rows)
+    print(f"[tables] {len(rows)} ledger rows; tasks = {tasks}")
+    if not tasks:
         print("[tables] no split='selective' rows — run experiments/run_sweep.py first.")
         return 0
     TABLE_DIR.mkdir(parents=True, exist_ok=True)
-    primary_k = max(agg)  # headline result uses the largest K (most restart geometry)
+
+    # T2 (K-ablation) uses whichever task has a K-sweep (>1 distinct K); default the first.
+    kablation_task = next((t for t in tasks if len(aggregate_by_k(rows, task=t)) > 1), tasks[0])
     outputs = {
-        "T1_main.tex": _t1(agg, primary_k),
-        "T2_kablation.tex": _t2(agg),
+        "T1_main.tex": _t1(rows),
+        "T2_kablation.tex": _t2(aggregate_by_k(rows, task=kablation_task)),
         "T3_repro.tex": _t3(rows),
     }
     for name, tex in outputs.items():
         (TABLE_DIR / name).write_text(tex)
         print(f"[tables] wrote {TABLE_DIR / name}")
-    print(f"[tables] {len(outputs)} tables -> {TABLE_DIR}  (primary K={primary_k})")
+    print(f"[tables] {len(outputs)} tables -> {TABLE_DIR}  (K-ablation task={kablation_task})")
     return 0
 
 
