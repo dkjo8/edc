@@ -83,6 +83,11 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
         "seeds_ci_excludes_0_baseline": bl_ci,
         # True only when every row genuinely carried the Phase-4e baseline field (not a fallback).
         "has_baseline": all("delta_aurc_vs_best_baseline" in m for m in ms),
+        # Feature-group leave-one-out ablation (Phase 4f), mean/std per subset over seeds.
+        "feature_ablation": (
+            {k: _ms([m["feature_ablation"][k] for m in ms])
+             for k in ms[0]["feature_ablation"]}
+            if all("feature_ablation" in m for m in ms) else {}),
         "ltt_coverage": _ms([m["ltt"]["coverage"] for m in ms]),
         "ltt_selective_risk": _ms([m["ltt"]["selective_risk"] for m in ms]),
         "ltt_abstain_rate": _ms([m["ltt"]["abstain_rate"] for m in ms]),

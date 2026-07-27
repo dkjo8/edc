@@ -30,3 +30,8 @@ def test_include_ood_flag_toggles_ood_metrics():
     db, lob, hib = m["delta_aurc_vs_best_baseline"]
     assert lob <= db <= hib
     assert isinstance(m["geometry_wins_vs_baseline"], bool) and np.isfinite(m["temperature"])
+
+    # Phase 4f feature-group leave-one-out ablation
+    fa = m["feature_ablation"]
+    assert {"full", "drop_basin", "drop_energy", "drop_curv", "drop_dynamics"} <= set(fa)
+    assert all(0.0 <= v <= 1.0 for v in fa.values())

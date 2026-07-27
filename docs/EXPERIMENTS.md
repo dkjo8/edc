@@ -108,7 +108,27 @@ geometry, MSP, and entropy overlapping at the bottom, all far below energy). So:
 beats scalar energy but is not a better nonconformity score than softmax confidence** under the
 current reasoner. This is a real, reported limitation, not a bug.
 
-**Likely cause + the lever.** The reasoner is the Phase-1 **supervised basin-center** model with a
+**Which geometry features drive it? (A1 feature ablation → T2b, 5 seeds/task).** The geometry
+vector *includes* the 3 energy statistics, so does the win over raw energy just re-use energy?
+Leave-one-group-out AURC (lower = better) says no:
+
+| subset | arithmetic AURC | graph AURC |
+|--------|-----------------|-----------|
+| full (14 feats) | 0.059 | 0.159 |
+| **drop energy** | **0.062** | **0.162** |
+| drop curvature | 0.063 | 0.160 |
+| drop dynamics | 0.064 | 0.187 |
+| drop basin | **0.110** | **0.175** |
+| *(best raw energy)* | *0.144* | *0.270* |
+
+`drop_energy ≈ full` and both far below raw energy → the win is **genuinely from the non-energy
+features**, not re-using energy. **Basin agreement is the dominant driver** on both tasks (removing
+it nearly doubles arithmetic AURC toward the energy level); descent **dynamics** helps too (most on
+graph); curvature adds little here. This is the mechanism behind the invariant-8 win — and it is
+consistent with F5. (It does not change the 4e caveat: basin/dynamics beat *energy* but not softmax.)
+
+**Likely cause of the softmax tie + the lever.** The reasoner is the Phase-1 **supervised
+basin-center** model with a
 shallow decoder — its softmax is already informative, leaving little for geometry to add beyond
 energy. The research plan's **Phase-4 IRED annealed-landscape / score-matching training** is the
 intended fix: a genuinely learned, multi-basin landscape should make restart geometry carry signal

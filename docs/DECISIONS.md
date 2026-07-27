@@ -2,6 +2,19 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-27 — Phase 4f: feature-group leave-one-out ablation (which geometry features drive it)
+**Decision:** `evaluate` computes a `feature_ablation` block — refit the logistic geometry mapper on
+feature subsets (leave-one-group-out and group-only across basin/energy/curvature/dynamics) on the
+fit fold and score the test fold (`_feature_ablation`). Aggregated over seeds and emitted as
+`T2b_feature_ablation.tex`. **Why:** the geometry vector *includes* the 3 energy statistics, so
+"geometry beats energy" could be partly re-using energy; `drop_energy` (geometry without its energy
+columns) vs `full` isolates the genuine basin/curvature/dynamics contribution — directly probing the
+Phase-4e caveat. Cheap (logistic on ≤14 features), no training-recipe risk. **Reversible?** Yes —
+additive metric block; older rows aggregate to an empty ablation.
+**Note:** full IRED annealed-landscape / score-matching training (the priority lever from 4e) is a
+substantial research effort scoped as the next phase, not folded into the v0.0.1 release; the
+release ships the complete certificate machinery + honest findings under the Phase-1 reasoner.
+
 ## 2026-07-27 — Phase 4e: softmax-confidence baselines + a best-of-all-baselines falsification
 **Decision:** add three standard softmax-confidence nonconformity baselines (`eval/baselines.py`) —
 **MSP**, **temperature-scaled MSP**, and **predictive entropy** — computed from the mean decoder

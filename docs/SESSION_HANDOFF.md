@@ -57,7 +57,12 @@
   **The "geometry is the best nonconformity score" claim fails against softmax confidence** under
   the Phase-1 basin-center reasoner. Likely cause: shallow decoder + simple landscape → softmax
   already informative. **Lever: Phase-4 IRED landscape training** (below).
-- **Deferred / Phase 5: stubbed.** Modal runner, paper write-up.
+- **Phase 4f (feature-group ablation — A1/T2): ✅** `evaluate` computes `feature_ablation`
+  (leave-one-group-out + group-only mappers); aggregated → `T2b_feature_ablation.tex`. **Result
+  (5 seeds/task):** `drop_energy` ≈ `full` and both far below raw energy → geometry's win over
+  energy is from the **non-energy** features; **basin agreement is the dominant driver** (dynamics
+  second, esp. graph; curvature/energy minor). Rebuts "it's just energy"; consistent with F5.
+- **Deferred / Phase 5: stubbed.** IRED landscape training (priority lever, below), Modal, paper.
 
 ## What is real vs stub
 

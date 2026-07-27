@@ -18,6 +18,10 @@ def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic", baseline_de
         bd, blo = baseline_delta
         m["best_baseline"] = "temp_msp"
         m["delta_aurc_vs_best_baseline"] = [bd, blo, bd + 0.02]
+        m["feature_ablation"] = {                            # Phase 4f field
+            "full": geo, "drop_basin": geo + 0.03, "drop_energy": geo + 0.005,
+            "drop_curv": geo + 0.001, "drop_dynamics": geo + 0.002,
+        }
     return {
         "run_id": f"{task[:3]}{k}_{seed}", "seed": seed, "split": "selective", "task": task,
         "config_hash": f"{task}h{k}_{seed}", "git_sha": "abc1234",
@@ -63,6 +67,15 @@ def test_baseline_delta_aggregation_and_fallback():
     old = [_row(12, s, 0.09, 0.07) for s in range(3)]
     a_old = aggregate.aggregate_cell(old)
     assert a_old["delta_aurc_baseline"] == a_old["delta_aurc"]
+    assert a_old["feature_ablation"] == {}                  # absent -> empty, no crash
+
+
+def test_feature_ablation_aggregates():
+    rows = [_row(12, s, 0.09, 0.07, geo=0.08, baseline_delta=(0.05, 0.03)) for s in range(4)]
+    fa = aggregate.aggregate_cell(rows)["feature_ablation"]
+    assert set(fa) == {"full", "drop_basin", "drop_energy", "drop_curv", "drop_dynamics"}
+    assert fa["full"][0] == 0.08 and fa["drop_basin"][0] == 0.11   # mean AURC per subset
+    assert fa["full"][1] == 0.0                                    # zero std (identical seeds)
 
 
 def test_task_filter_no_cross_contamination():

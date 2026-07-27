@@ -86,6 +86,33 @@ def _t2(agg: dict[int, dict]) -> str:
         "tab:kablation", f"run_ids={all_ids}")
 
 
+def _t2b(rows: list[dict]) -> str:
+    """Feature-group leave-one-out ablation (A1): AURC per subset, one column per task.
+
+    ``full`` is the whole geometry vector; ``drop_energy`` is geometry *without* energy columns —
+    if it stays near ``full`` (and below raw energy), the basin/curvature/dynamics features are
+    genuinely carrying the win, not merely re-using energy.
+    """
+    tasks = tasks_present(rows)
+    cells = {t: headline_cell(rows, task=t).get("feature_ablation", {}) for t in tasks}
+    variants = ["full", "drop_basin", "drop_energy", "drop_curv", "drop_dynamics"]
+    body = []
+    for v in variants:
+        row = [_esc(v)]
+        for t in tasks:
+            fa = cells[t].get(v)
+            row.append(_pm(fa) if fa else "--")
+        body.append(row)
+    header = ["subset (AURC, lower=better)", *[_esc(t) for t in tasks]]
+    colspec = "l" + "c" * len(tasks)
+    return _tabular(
+        header, body, colspec,
+        "Feature-group leave-one-out ablation: test AURC of the geometry mapper refit on subsets "
+        "of the 14 features (mean$\\pm$std over seeds). ``drop\\_X`` removes that group; comparing "
+        "``drop\\_energy`` to ``full`` isolates the non-energy geometry contribution.",
+        "tab:ablation", "feature-group leave-one-out")
+
+
 def _t3(rows: list[dict]) -> str:
     sel = selective_rows(rows)
     env = sel[-1]["env"] if sel else {}
@@ -115,6 +142,7 @@ def main() -> int:
     outputs = {
         "T1_main.tex": _t1(rows),
         "T2_kablation.tex": _t2(aggregate_by_k(rows, task=kablation_task)),
+        "T2b_feature_ablation.tex": _t2b(rows),
         "T3_repro.tex": _t3(rows),
     }
     for name, tex in outputs.items():

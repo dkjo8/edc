@@ -94,6 +94,32 @@ def _feature_diagnostics(features, names, correct, n_bins: int = 20) -> dict:
     return {"names": list(names), "auroc": auroc, "hist": hist}
 
 
+_FEATURE_GROUPS = ("basin", "energy", "curv", "dynamics")
+
+
+def _feature_ablation(fit_feats, fit_correct, test_feats, test_correct, names) -> dict:
+    """Leave-one-group-out and group-only AURC — which geometry features drive the win (T2/A1).
+
+    Refits the logistic mapper on feature subsets (fit fold, invariant 7) and scores the test fold.
+    ``drop_energy`` is the key one: does geometry *without* energy columns still beat raw energy?
+    """
+    fit_feats = np.asarray(fit_feats, dtype=float)
+    test_feats = np.asarray(test_feats, dtype=float)
+    groups = {g: [j for j, n in enumerate(names) if n.split("/")[0] == g] for g in _FEATURE_GROUPS}
+
+    def aurc_on(cols: list[int]) -> float:
+        if not cols:
+            return 0.5
+        m = nc.fit_mapper(fit_feats[:, cols], fit_correct)
+        return metrics.aurc(nc.score(m, test_feats[:, cols]), test_correct)
+
+    out = {"full": aurc_on(list(range(len(names))))}
+    for g, cols in groups.items():
+        out[f"drop_{g}"] = aurc_on([j for j in range(len(names)) if j not in cols])
+        out[f"{g}_only"] = aurc_on(cols)
+    return out
+
+
 def evaluate(cfg, task, include_ood: bool = True) -> dict:
     """Train, calibrate, and score geometry vs raw energy on disjoint folds. Returns a metrics dict.
 
@@ -204,6 +230,8 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
         "ltt": ltt_block,
         "coverage_validity": validity,
         "feature_diagnostics": _feature_diagnostics(test["features"], test["names"], correct),
+        "feature_ablation": _feature_ablation(
+            fit["features"], fit["correct"], test["features"], correct, test["names"]),
         "ece_geometry": metrics.ece(1.0 - test_scores["geometry"], correct),
     }
     if include_ood:
