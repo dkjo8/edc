@@ -58,7 +58,7 @@ PYTHONPATH=src python -m edc.cli smoke --config configs/smoke.toml
 src/edc/
   energy/       encoder → E_θ(h_x, z) → decoder            (JAX/Flax)
   inference/    K-restart Langevin descent + trajectory logging
-  geometry/     basin · curvature (HVP) · energy stats · dynamics   [Phase 2]
+  geometry/     basin · curvature (HVP) · energy stats · dynamics   ✓
   conformal/    Learn-then-Test (abstention) · Conformal Risk Control (halting)  [Phase 3]
   halting/      adaptive compute policy                    [Phase 3]
   tasks/        synthetic reasoning families (+ OOD splits)
@@ -67,12 +67,32 @@ src/edc/
 configs/  experiments/  analysis/  results/ledger.jsonl  tests/  docs/  paper/
 ```
 
-## Status
+## Status (v0.0.1)
 
-Phase 0 (skeleton) and Phase 1 (runnable base reasoner) are in. Geometry features,
-the conformal layer, full experiments, and the paper are scaffolded and tracked in
-[`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md). Current state:
-[`docs/SESSION_HANDOFF.md`](docs/SESSION_HANDOFF.md).
+The full method and its distribution-free certificate machinery are implemented and tested
+(offline, CPU): base reasoner (Phase 1), 14-feature landscape geometry (Phase 2), the conformal
+layer — split-conformal, Learn-then-Test **selective prediction/abstention**, and Conformal Risk
+Control **adaptive halting** (Phase 3, 4b) — a multi-seed experiment/sweep/table harness, and the
+figure set F2–F6 + S1, all regenerable from `results/ledger.jsonl`.
+
+**Findings so far (honest).**
+- **Geometry beats the EBT scalar energy** as a nonconformity score on two structurally distinct
+  tasks — arithmetic (E1) and graph shortest-path (E2) — with the paired-bootstrap ΔAURC CI
+  excluding 0 on 5/5 seeds each. This is the project's specific falsification target (invariant 8).
+- The restart geometry is the mechanism: the lift **grows monotonically with K** (S1 ablation);
+  K=1 (≈ EBT, no basin geometry) barely separates.
+- Both guarantees hold in-distribution (F2/F3 abstention validity, F4 halting saves ~58% compute
+  at a guaranteed error budget) and **break under distribution shift** (F6) — the argument for
+  abstention in critical systems.
+- **Key caveat (Phase 4e):** geometry does **not** beat a standard *softmax-confidence* baseline
+  (MSP / temperature-scaled / entropy) — it ties on arithmetic and loses on graph. So the current
+  contribution is the certificate machinery + beating the EBT scalar-energy signal specifically,
+  **not** a universal win over all confidence signals. The likely lever — a fully-learned
+  **IRED-style landscape** (vs the current supervised basin-center reasoner) — is the priority next
+  experiment.
+
+Experiments and figures/tables: [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md). Rolling state and next
+steps: [`docs/SESSION_HANDOFF.md`](docs/SESSION_HANDOFF.md). Decisions: [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
 ## License
 

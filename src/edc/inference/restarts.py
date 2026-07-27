@@ -18,8 +18,14 @@ from edc.inference.optimizer import langevin_descent
 from edc.inference.trajectory import TrajectoryRecord
 
 
-def solve(fns: ReasonerFns, params, x, cfg, key, k_restarts: int | None = None) -> TrajectoryRecord:
-    """Run K-restart inference on a batch of raw inputs ``x`` (``(B, feature_dim)``)."""
+def solve(fns: ReasonerFns, params, x, cfg, key, k_restarts: int | None = None,
+          record_steps: bool = False) -> TrajectoryRecord:
+    """Run K-restart inference on a batch of raw inputs ``x`` (``(B, feature_dim)``).
+
+    ``record_steps=True`` additionally decodes the latent at *every* descent step and stores the
+    per-step class in ``TrajectoryRecord.step_pred`` (B, K, T+1) — the raw material adaptive halting
+    needs. It costs one extra decode over all ``(T+1)*N`` intermediate latents, so it is opt-in.
+    """
     K = int(k_restarts if k_restarts is not None else cfg.inference.k_restarts)
     d = fns.latent_dim
 
@@ -32,11 +38,12 @@ def solve(fns: ReasonerFns, params, x, cfg, key, k_restarts: int | None = None) 
     key_init, key_lan = jax.random.split(key)
     z0 = cfg.inference.init_scale * jax.random.normal(key_init, (B * K, d))
 
-    z_final, energies, gnorms = langevin_descent(
+    z_final, energies, gnorms, z_traj = langevin_descent(
         fns.energy, params, h_rep, z0, key_lan,
         step_size=cfg.inference.step_size,
         temperature=cfg.inference.temperature,
         steps=cfg.inference.steps,
+        record_z=record_steps,
     )
 
     logits = fns.decode(params, z_final)                 # (N, C)
@@ -45,12 +52,21 @@ def solve(fns: ReasonerFns, params, x, cfg, key, k_restarts: int | None = None) 
     def to_bk(a):
         return jnp.reshape(a, (B, K) + a.shape[1:])
 
+    step_pred = None
+    if record_steps:
+        T1 = z_traj.shape[0]                             # steps + 1
+        step_logits = fns.decode(params, z_traj.reshape(T1 * B * K, d))   # ((T+1)*N, C)
+        step_cls = jnp.argmax(step_logits, axis=-1).reshape(T1, B * K)    # (T+1, N)
+        step_pred = to_bk(step_cls.T)                                     # (N, T+1) -> (B, K, T+1)
+
     return TrajectoryRecord(
         z_star=to_bk(z_final),          # (B, K, d)
         energies=to_bk(energies.T),     # (N, T+1) -> (B, K, T+1)
         grad_norms=to_bk(gnorms.T),     # (N, T)   -> (B, K, T)
         logits=to_bk(logits),           # (B, K, C)
         pred=to_bk(pred),               # (B, K)
+        h_x=h_x,                        # (B, dc)  one context per input (shared across restarts)
+        step_pred=step_pred,            # (B, K, T+1) when record_steps else None
     )
 
 

@@ -1,0 +1,36 @@
+# E2 — generalization: selective prediction on graph shortest-path (a relational reasoning family
+# distinct from additive arithmetic). Tests whether geometry beats scalar energy beyond arithmetic.
+# Tuned to ~72% ID base accuracy (majority-class baseline ~0.41, so this is real learning); OOD is a
+# size shift (larger graphs) degrading to ~0.36. Inference/train mirror the arithmetic E1 config.
+[run]
+task = "graph_planning"
+seed = 0
+notes = "E2 graph selective-prediction"
+
+[task.graph_planning]
+n_nodes = 7
+ood_n_nodes = 10        # OOD = larger graphs (IRED-style size generalization)
+edge_prob = 0.4
+max_len = 4             # classes: 0 = unreachable/farther, 1..4 = exact shortest-path length
+
+[model]
+latent_dim = 32
+hidden_dim = 128
+context_dim = 64
+
+[inference]
+k_restarts = 12
+steps = 50
+
+[train]
+epochs = 25             # graph shortest-path needs more epochs than arithmetic to reach the regime
+n_train = 8000
+n_neg = 4
+
+[eval]
+n_eval = 1500
+
+[conformal]
+alpha = 0.1
+delta = 0.05
+n_calib = 1500

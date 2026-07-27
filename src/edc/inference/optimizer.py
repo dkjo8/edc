@@ -25,7 +25,8 @@ def _per_particle_grad(energy, params, h_x):
     return jax.grad(total_energy)
 
 
-def langevin_descent(energy, params, h_x, z0, key, step_size, temperature, steps):
+def langevin_descent(energy, params, h_x, z0, key, step_size, temperature, steps,
+                     record_z: bool = False):
     """Descend ``N`` particles for ``steps`` steps.
 
     Args:
@@ -33,26 +34,46 @@ def langevin_descent(energy, params, h_x, z0, key, step_size, temperature, steps
       h_x: ``(N, context_dim)``.
       z0:  ``(N, d)`` initial latents.
       key: JAX PRNG key for the Langevin noise.
+      record_z: also return the full latent trajectory (for per-step decoding / halting).
 
-    Returns ``(z_final, energies, grad_norms)`` with
+    Returns ``(z_final, energies, grad_norms, z_traj)`` with
       ``energies``   shape ``(steps+1, N)`` (row 0 = initial),
-      ``grad_norms`` shape ``(steps, N)``   (norm of the gradient used at each step).
+      ``grad_norms`` shape ``(steps, N)``   (norm of the gradient used at each step),
+      ``z_traj``     shape ``(steps+1, N, d)`` (row 0 = ``z0``) when ``record_z`` else ``None``.
     """
     grad_fn = _per_particle_grad(energy, params, h_x)
     noise_scale = jnp.sqrt(2.0 * step_size * temperature)
 
-    def step(carry, _):
-        z, k = carry
+    def _update(z, k):
         k, sub = jax.random.split(k)
         g = grad_fn(z)                                   # (N, d)
         z_new = z - step_size * g + noise_scale * jax.random.normal(sub, z.shape)
         e_new = energy(params, h_x, z_new)               # (N,)
         gnorm = jnp.linalg.norm(g, axis=-1)              # (N,)
-        return (z_new, k), (e_new, gnorm)
+        return z_new, k, e_new, gnorm
 
     e0 = energy(params, h_x, z0)                          # (N,)
-    (z_final, _), (e_steps, gnorms) = jax.lax.scan(
-        step, (z0, key), None, length=steps
-    )
+
+    if record_z:
+        def step(carry, _):
+            z, k = carry
+            z_new, k, e_new, gnorm = _update(z, k)
+            return (z_new, k), (e_new, gnorm, z_new)
+
+        (z_final, _), (e_steps, gnorms, z_steps) = jax.lax.scan(
+            step, (z0, key), None, length=steps
+        )
+        z_traj = jnp.concatenate([z0[None], z_steps], axis=0)   # (steps+1, N, d)
+    else:
+        def step(carry, _):
+            z, k = carry
+            z_new, k, e_new, gnorm = _update(z, k)
+            return (z_new, k), (e_new, gnorm)
+
+        (z_final, _), (e_steps, gnorms) = jax.lax.scan(
+            step, (z0, key), None, length=steps
+        )
+        z_traj = None
+
     energies = jnp.concatenate([e0[None, :], e_steps], axis=0)  # (steps+1, N)
-    return z_final, energies, gnorms
+    return z_final, energies, gnorms, z_traj

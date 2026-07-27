@@ -1,0 +1,12 @@
+# E2 multi-seed: run the graph selective-prediction experiment across 5 seeds at K=12 for a
+# credible ΔAURC generalization verdict (does geometry beat energy on graphs?). Reduced folds keep
+# each cell fast on CPU and keep arithmetic's full-fold E1 (n_test=1500) as the F2-F6 headline.
+[sweep]
+base = "configs/experiments/graph_selective.toml"
+
+[sweep.override]
+"eval.n_eval" = 600
+"conformal.n_calib" = 800
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

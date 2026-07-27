@@ -26,6 +26,20 @@ inference-time descent** into distribution-free reliability certificates. Read
 
 ## Phase map (see docs/EXPERIMENTS.md)
 
-- Phase 0 skeleton ✅ / Phase 1 base reasoner ✅ (this pass)
-- Phase 2 geometry features · Phase 3 conformal + halting · Phase 4 experiments/OOD/Modal
-  · Phase 5 paper — stubbed, `NotImplementedError` with a phase note until built.
+- Phase 0 skeleton ✅ / Phase 1 base reasoner ✅ / Phase 2 geometry features ✅
+- Phase 3 conformal falsification + LTT abstention ✅ (E1: geometry beats energy, ΔAURC CI
+  excludes 0; F2/F3 regenerate from the ledger).
+- Phase 4a robustness + K-ablation ✅ (`run_sweep` + `aggregate` + `make_tables` T1/T2/T3 + S1
+  K-lift figure; S1: geometry lift grows monotonically with restarts, K=1≈EBT barely separates).
+- Phase 4b adaptive halting ✅ (opt-in per-step decode + `halting.adaptive` CRC + F4; H1: ~58%
+  compute saved at halting risk ≤ α, no accuracy loss). Both guarantees now live.
+- Phase 4c arithmetic figure set complete ✅ (F5 mechanism + F6 OOD stress; F6: selective risk
+  0.075 ID vs 0.762 OOD — guarantee breaks under shift, motivating abstention).
+- Phase 4d generalization ✅ (graph shortest-path task; E2: geometry beats energy 5/5 seeds,
+  ΔAURC +0.111 — discovery replicates on a 2nd structurally distinct family; per-task T1).
+- Phase 4e baseline stress test ✅ ⚠️ (MSP/temp/entropy; geometry beats scalar energy 5/5 but
+  does NOT beat softmax confidence — ties arith, loses graph). Key caveat; see EXPERIMENTS.md.
+- Phase 4f feature-group ablation ✅ (A1/T2b; basin agreement is the dominant driver, drop_energy≈full
+  so the win is non-energy features — rebuts "it's just energy").
+- Next: IRED landscape training (the priority lever from 4e) · E3/E4 · Modal · Phase 5 paper —
+  stubbed, `NotImplementedError` / Phase-1 placeholder until built.

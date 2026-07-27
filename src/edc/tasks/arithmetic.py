@@ -29,6 +29,7 @@ class ArithmeticTask:
         n_operands: int = 3,
         max_operand: int = 9,
         ood_n_operands: int = 5,
+        ood_max_operand: int | None = None,
         modular: bool = False,
     ) -> None:
         if max(n_operands, ood_n_operands) > _MAX_OPERANDS:
@@ -37,23 +38,33 @@ class ArithmeticTask:
         self.n_operands = n_operands
         self.max_operand = max_operand
         self.ood_n_operands = ood_n_operands
+        # OOD shift 1: more operands (ood_n_operands). OOD shift 2: larger operand magnitudes
+        # (ood_max_operand > max_operand) — a covariate shift that keeps the reasoning identical
+        # and the low-sum region in-distribution, so accuracy degrades *gracefully* rather than
+        # collapsing. Defaults to max_operand (no magnitude shift).
+        self.ood_max_operand = max_operand if ood_max_operand is None else ood_max_operand
         # modular=True is the harder "grokking" variant (answer = sum mod modulus);
         # modular=False (default) is plain sum classification — smooth in the inputs and the
         # right demonstrator that descent lands in the correct basin. Both share feature_dim.
         self.modular = modular
-        self.n_classes = modulus if modular else _MAX_OPERANDS * max_operand + 1
-        self.feature_dim = _MAX_OPERANDS * (max_operand + 1)
+        # Encoding width and class count must cover both splits so one model handles ID + OOD.
+        self._slot_max = max(max_operand, self.ood_max_operand)
+        self.n_classes = modulus if modular else _MAX_OPERANDS * self._slot_max + 1
+        self.feature_dim = _MAX_OPERANDS * (self._slot_max + 1)
 
     def _k(self, split: str) -> int:
         return self.ood_n_operands if split == "ood" else self.n_operands
 
+    def _max(self, split: str) -> int:
+        return self.ood_max_operand if split == "ood" else self.max_operand
+
     def sample(self, rng: np.random.Generator, n: int, split: str = "id") -> Batch:
         k = self._k(split)
-        operands = rng.integers(0, self.max_operand + 1, size=(n, k))
+        operands = rng.integers(0, self._max(split) + 1, size=(n, k))
         total = operands.sum(axis=1)
         y = (total % self.modulus) if self.modular else total
 
-        slot = self.max_operand + 1
+        slot = self._slot_max + 1
         x = np.zeros((n, self.feature_dim), dtype=np.float32)
         for j in range(k):
             cols = j * slot + operands[:, j]
@@ -65,7 +76,7 @@ class ArithmeticTask:
 
     def difficulty(self, batch: Batch) -> np.ndarray:
         # Number of active operand slots ~ proxy for carry complexity.
-        slot = self.max_operand + 1
+        slot = self._slot_max + 1
         blocks = batch.x.reshape(batch.x.shape[0], _MAX_OPERANDS, slot)
         return blocks.max(axis=2).sum(axis=1).astype(np.float32)
 
@@ -73,5 +84,6 @@ class ArithmeticTask:
 @register_task("arithmetic")
 def _build(**kwargs) -> ArithmeticTask:
     # Accept keys from the [task.arithmetic] TOML block; ignore unrelated ones.
-    known = {"modulus", "n_operands", "max_operand", "ood_n_operands", "modular"}
+    known = {"modulus", "n_operands", "max_operand", "ood_n_operands", "ood_max_operand",
+             "modular"}
     return ArithmeticTask(**{k: v for k, v in kwargs.items() if k in known})

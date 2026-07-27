@@ -1,8 +1,16 @@
-# Sweep the number of restarts: K=1 (~EBT, no basin geometry) .. K=32.
-# Tests the ablation "does restart geometry add signal over a single descent?" (invariant 8).
+# S1 — sweep the number of restarts: K=1 (~EBT, no basin geometry) .. K=16, across 5 seeds.
+# Tests the secondary falsifier "does restart geometry add signal over a single descent?"
+# (invariant 8): K=1 has degenerate basin features (one restart), so the K>1 lift over K=1 is the
+# ablation. Produces T2 (K-ablation) + the K-lift figure. K=32 dropped to bound curvature cost on
+# CPU (add it back for the paper run). Folds are reduced (n_eval=600, n_calib=800) to keep each of
+# the 25 cells ~1 min; AURC/ΔAURC (the ablation metric) is threshold-free and fine at n_test=600.
 [sweep]
 base = "configs/experiments/arithmetic_selective.toml"
 
+[sweep.override]
+"eval.n_eval" = 600
+"conformal.n_calib" = 800
+
 [sweep.grid]
-"inference.k_restarts" = [1, 2, 4, 8, 16, 32]
+"inference.k_restarts" = [1, 2, 4, 8, 16]
 "run.seed" = [0, 1, 2, 3, 4]

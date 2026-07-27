@@ -1,0 +1,13 @@
+# Arithmetic multi-seed at K=12 with the Phase-4e baselines, matching graph_seeds.toml so T1's
+# cross-task vs-best-baseline verdict is 5-seed on both tasks (the arithmetic K-sweep rows predate
+# the softmax-confidence baselines). Reduced folds keep it fast; the full-fold E1 stays the F2-F6
+# headline (plotting._selective_row picks max n_test).
+[sweep]
+base = "configs/experiments/arithmetic_selective.toml"
+
+[sweep.override]
+"eval.n_eval" = 600
+"conformal.n_calib" = 800
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]
