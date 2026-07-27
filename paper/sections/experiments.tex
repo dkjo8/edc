@@ -76,13 +76,16 @@ inference. This reasoner reasons (arithmetic ID $0.72$--$0.90$), and on \emph{ar
 beat the best softmax-confidence baseline: over $5$ seeds, $\Delta\mathrm{AURC} = +0.007\pm0.005$
 against the best overall baseline ($4/5$ seeds' CI excluding zero) and $+0.159\pm0.051$ against
 scalar energy---compared to $-0.011$ ($0/5$) under the basin-center reasoner. So a genuinely
-multi-basin landscape can flip the caveat: inference-time geometry can beat a well-calibrated softmax
-when the landscape supports it. The effect is, however, \emph{task-dependent}: on \emph{graph}, where
-the learned reasoner is weaker and higher-variance (ID $0.55$--$0.82$), geometry still beats scalar
-energy $5/5$ but only ties softmax ($\Delta\mathrm{AURC}=+0.004\pm0.014$, $1$ win / $1$ loss / $3$
-ties). We therefore claim the flip narrowly and honestly---demonstrated on arithmetic, not yet on
-graph---and read it as evidence that the landscape, not the geometry idea, gates the effect. Widening
-it (stronger learned reasoners, richer landscapes, more seeds) is ongoing.
+multi-basin landscape can flip the caveat on arithmetic: inference-time geometry can beat a
+well-calibrated softmax when the task supports it. The effect is, however, \emph{task-dependent}, and
+not simply a matter of reasoner accuracy. On \emph{graph}, a first (capacity-limited) IRED reasoner
+only tied softmax; the natural explanation was its weakness, so we tested it with a larger IRED graph
+reasoner (hidden $256$, latent $48$) that reaches ID $\approx0.83$---as strong as arithmetic. It
+\emph{still} only ties: over $5$ seeds $\Delta\mathrm{AURC}=+0.001\pm0.003$ against the best softmax
+baseline ($0/5$), while still beating scalar energy $5/5$. So the flip is specific to arithmetic, not
+a general property of learned landscapes nor an artifact of accuracy: on graph, a well-calibrated
+softmax already captures what the descent geometry would add. We report this narrowly and read it as
+a boundary on when landscape geometry is worth its cost.
 
 \input{tables/T1_main}
 \input{tables/T2b_feature_ablation}

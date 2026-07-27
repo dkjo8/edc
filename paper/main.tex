@@ -35,8 +35,9 @@ $\Delta$AURC CI excluding zero, $5/5$ seeds each), the advantage is caused by th
 agreement, and halting saves ${\sim}58\%$ of inference compute at a guaranteed error budget. Against a stronger, standard softmax-confidence baseline (maximum softmax probability, temperature
 scaling, entropy), geometry only \emph{ties} (arithmetic) or \emph{loses} (graph) under a supervised
 basin-center reasoner---but when the reasoner is a genuinely learned, multi-basin landscape,
-geometry \emph{beats} softmax confidence on arithmetic ($4/5$ seeds; on graph it ties), indicating
-that the landscape, not the geometry idea, gates the effect. The certificates are valid in-distribution and, by design, break
+geometry \emph{beats} softmax confidence on arithmetic ($4/5$ seeds). This does not generalize: on
+graph, even an equally strong learned reasoner leaves geometry only tying softmax, so the benefit of
+landscape geometry over a well-calibrated softmax is task-dependent, not universal. The certificates are valid in-distribution and, by design, break
 under distribution shift, which is the argument for treating an abstention as a routing signal in
 critical systems.
 \end{abstract}

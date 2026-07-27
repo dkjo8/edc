@@ -74,12 +74,15 @@
   (`||∇_z E(μ_y)||→0`, weight `ired_stat_weight`) was the key — it makes anchors genuine attractors,
   which the earlier DSM attempts lacked. **5-seed result (task-dependent flip):** on **arithmetic**,
   geometry beats softmax **4/5 seeds** (ΔAURC +0.007±0.005 vs best baseline, vs 0/5 under
-  basin_center) — flips the Phase-4e caveat; on **graph** (IRED weaker, ID 0.55–0.82) it only **ties**
-  (1 win/1 loss/3 ties, +0.004±0.014). So the flip is demonstrated on arithmetic, not yet graph.
-  `configs/experiments/{arithmetic,graph}_ired.toml`, `sweeps/{ired,graph_ired}_seeds.toml`.
-  Aggregation is now **objective-aware** (`aggregate.objective_of`, `headline_cell(objective=…)`) so
-  IRED rows never pollute the basin-center T1. Default `basin_center` unchanged (92 tests green).
-- **Deferred: stubbed.** Stronger IRED graph reasoner + more seeds (widen margin), E3/E4, Modal, scale-up.
+  basin_center) — flips the Phase-4e caveat. On **graph** it only **ties**, and this is **not** a
+  weak-reasoner artifact: a first IRED graph model (ID~0.58) tied (1/5), and a **stronger one (hidden
+  256/latent 48, ID~0.83, matching arithmetic) still ties (0/5, ΔAURC +0.001±0.003)** while beating
+  scalar energy 5/5. So the flip is arithmetic-specific — softmax already captures on graph what
+  descent geometry would add. `configs/experiments/{arithmetic,graph}_ired.toml`,
+  `sweeps/{ired,graph_ired}_seeds.toml`. Aggregation is **objective-aware** (`aggregate.objective_of`,
+  `headline_cell(objective=…)`) so IRED never pollutes the basin-center T1 (92 tests green).
+- **Open question / next:** characterize *when* descent geometry adds over softmax (task structure ×
+  landscape); richer geometry; more tasks (E3/E4); Modal; scale-up.
 
 ## What is real vs stub
 

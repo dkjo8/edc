@@ -2,6 +2,17 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-27 — Phase 4i: the graph tie is NOT a weak-reasoner artifact (hypothesis refuted)
+**Finding:** we tested whether the graph softmax-tie was just IRED being a weak graph reasoner by
+scaling the model (hidden 256 / latent 48), reaching graph ID ≈ 0.83 (as strong as arithmetic, low
+variance). Geometry **still only ties** softmax there (0/5 seeds, ΔAURC +0.001±0.003), while still
+beating scalar energy 5/5. **Decision/interpretation:** the flip is **arithmetic-specific and
+genuinely task-dependent**, not a function of reasoner accuracy nor a general property of learned
+landscapes — on graph a well-calibrated softmax already captures what descent geometry would add.
+Paper/docs updated to say this plainly; the open question becomes *when* geometry adds over softmax.
+**Why record it:** it refutes our own natural explanation (weak reasoner), which is exactly the kind
+of check worth reporting.
+
 ## 2026-07-27 — Phase 4h: objective-aware aggregation; the IRED flip is task-dependent
 **Decision:** `evaluate` now records `objective` (basin_center|ired) + `sampler` in its metrics, and
 `analysis/aggregate` is **objective-aware** (`objective_of`, `selective_rows(objective=…)`,
