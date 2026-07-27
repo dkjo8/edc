@@ -71,6 +71,7 @@ class TrainCfg:
     ired_noise_max: float = 1.5      # largest DSM noise scale sigma (annealing range)
     ired_ridge: float = 0.05         # ||z||^2 ridge keeping the learned energy bounded
     ired_decode_weight: float = 1.0  # weight on the anchor/path decode-CE term
+    ired_stat_weight: float = 1.0    # weight on the anchor-stationarity (attractor) term
 
 
 @dataclass(frozen=True)

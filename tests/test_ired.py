@@ -1,8 +1,7 @@
-"""IRED opt-in training scaffold (Phase 4g, experimental): the objective trains without error and
-is non-breaking (the default basin_center path and energy form are unchanged). Offline + CPU-only.
-
-Note: this does NOT assert reasoning accuracy — the DSM-trained landscape does not yet reason under
-the shared fixed-step Langevin sampler (needs annealed sampling; see docs). It guards the plumbing.
+"""IRED opt-in learned-landscape training (Phase 4g): the contrastive+stationarity objective trains
+without error and is non-breaking (the default basin_center path and energy form are unchanged).
+Offline + CPU-only. Reasoning accuracy (which needs many epochs + the annealed sampler) is exercised
+by the experiment config, not asserted here — this guards the plumbing.
 """
 
 import jax.numpy as jnp
@@ -44,7 +43,7 @@ def test_ired_trains_and_infers_without_error():
     task = build_task("arithmetic")
     params, fns, history = train(cfg, task)
     last = history["epochs"][-1]
-    assert {"loss", "dsm", "gap", "ce_anchor", "ce_near"} <= set(last)
+    assert {"loss", "contrast", "stat", "e_pos", "e_neg", "ce_anchor"} <= set(last)
     assert all(np.isfinite(v) for v in last.values())        # trains without NaN/inf
 
     batch = task.sample(numpy_rng(0, 1), 8, "id")

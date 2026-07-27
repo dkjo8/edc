@@ -1,0 +1,9 @@
+# Phase 4g: 5-seed IRED learned-landscape run, to confirm the flip robustly — does geometry beat
+# softmax confidence (not just energy) under a learned multi-basin landscape? Full folds kept
+# (n_eval=1000) because the vs-baseline margin is small; the annealed 200-step sampler makes each
+# cell heavier, so this is the compute we pay for a robust answer.
+[sweep]
+base = "configs/experiments/arithmetic_ired.toml"
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

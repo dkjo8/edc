@@ -34,11 +34,11 @@ def train(cfg, task):
     if objective == "ired":
         nmin, nmax = cfg.train.ired_noise_min, cfg.train.ired_noise_max
         dw = cfg.train.ired_decode_weight
-
+        sw = getattr(cfg.train, "ired_stat_weight", 1.0)
         init_scale = cfg.inference.init_scale
 
         def _loss(params, model, x, y, key):
-            return ired_loss_fn(params, model, x, y, key, nmin, nmax, dw, init_scale)
+            return ired_loss_fn(params, model, x, y, key, nmin, nmax, dw, init_scale, sw)
     else:
         neg_noise = cfg.train.neg_noise
 

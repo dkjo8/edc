@@ -1,17 +1,13 @@
-# EXPERIMENTAL (Phase 4g, WIP): IRED-style learned-landscape training on arithmetic.
-# Opt-in via [train] objective="ired" — denoising score matching toward a learned per-class latent
-# codebook (a genuinely multi-basin energy, vs the Phase-1 supervised bowl). Goal: test whether a
-# learned landscape lets restart geometry beat softmax confidence (the Phase-4e caveat).
-#
-# STATUS: the scaffold trains (DSM + reachability + anchor decode) and is non-breaking, but does
-# NOT yet reach a working reasoning regime under the shared fixed-step Langevin sampler — descent
-# from z0 does not reliably land in the correct basin (ID acc ~ chance). Making it work needs
-# annealed Langevin sampling at inference + a stronger score network. Do not use for real results
-# yet; see docs/EXPERIMENTS.md (Phase 4g) and docs/SESSION_HANDOFF.md.
+# Phase 4g: IRED-style LEARNED-landscape reasoner on arithmetic (now working).
+# Opt-in [train] objective="ired": an input-conditioned multi-basin energy trained by a contrastive
+# + stationarity + decode objective toward a learned per-class latent codebook (no fixed bowl), with
+# an annealed Langevin sampler at inference. Tuned to the 70-85% ID regime. Purpose: re-run the
+# Phase-4e baseline stress test under a genuinely learned landscape — does geometry now beat softmax
+# confidence, not just scalar energy?
 [run]
 task = "arithmetic"
 seed = 0
-notes = "EXPERIMENTAL IRED landscape training (WIP)"
+notes = "IRED learned-landscape reasoner"
 
 [task.arithmetic]
 modular = false
@@ -27,29 +23,26 @@ context_dim = 64
 
 [inference]
 k_restarts = 12
-steps = 50
-step_size = 0.1
 init_scale = 1.0
-sampler = "annealed"        # the learned landscape needs annealed (not fixed-step) Langevin
-anneal_levels = 15
+sampler = "annealed"        # the learned landscape needs annealed (explore -> settle) Langevin
+anneal_levels = 20
 anneal_steps_per_level = 10
 anneal_step_max = 0.5
-anneal_step_min = 0.005
+anneal_step_min = 0.003
 temperature = 0.01
 
 [train]
 objective = "ired"
-epochs = 40
+epochs = 55                 # ~78% ID regime
 n_train = 8000
-ired_noise_min = 0.1
-ired_noise_max = 1.5
-ired_ridge = 0.05
-ired_decode_weight = 1.0
+ired_ridge = 0.15
+ired_stat_weight = 5.0      # anchor-stationarity: make basins genuine attractors (the key term)
+ired_decode_weight = 2.0
 
 [eval]
-n_eval = 1500
+n_eval = 1000               # annealed sampler runs 200 steps/descent -> keep folds modest
 
 [conformal]
 alpha = 0.1
 delta = 0.05
-n_calib = 1500
+n_calib = 1000
