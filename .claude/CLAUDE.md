@@ -41,7 +41,9 @@ inference-time descent** into distribution-free reliability certificates. Read
   does NOT beat softmax confidence — ties arith, loses graph). Key caveat; see EXPERIMENTS.md.
 - Phase 4f feature-group ablation ✅ (A1/T2b; basin agreement is the dominant driver, drop_energy≈full
   so the win is non-energy features — rebuts "it's just energy").
-- Phase 4g IRED landscape training 🚧 WIP (`phase-4g-ired`, opt-in `objective="ired"` + opt-in
-  annealed sampler `sampler="annealed"`; trains but doesn't yet reason — root cause is the DSM
-  score net not fitting, not the sampler; needs a σ-conditioned NCSN score net. NOT merged).
-- Next: σ-conditioned score net for IRED, then re-run 4e stress test · E3/E4 · Modal · Phase 5 paper.
+- Phase 5 paper draft ✅ (`paper/sections/*.tex` written from the real results; figures/tables wired;
+  compiles via `tectonic`).
+- Phase 4g IRED landscape ✅ (opt-in `objective="ired"` contrastive+stationarity + annealed sampler;
+  it reasons, and under the learned landscape geometry beats softmax confidence **4/5 seeds** —
+  flips the 4e caveat, confirming the landscape was the limiter).
+- Next: E3/E4 tasks · Modal · scale-up.

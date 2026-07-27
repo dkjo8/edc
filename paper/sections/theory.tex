@@ -1,7 +1,43 @@
 \section{Guarantees}
-% State the selective-risk guarantee (LTT): P(R_sel(lambda_hat) <= alpha) >= 1 - delta under
-% exchangeability. State the halting guarantee (CRC): E[L(lambda_hat)] <= alpha. Make the
-% exchangeability assumption explicit and note the marginal-over-calibration caveat.
+\label{sec:guarantees}
+
+Both guarantees are distribution-free and marginal over the calibration draw, under a single
+assumption.
+
 \begin{assumption}[Exchangeability]
+\label{asm:exch}
 The calibration and test inputs are exchangeable draws from the deployment distribution.
 \end{assumption}
+
+\paragraph{Selective prediction (Learn-then-Test).} For a threshold $\lambda$, let
+$R_{\mathrm{sel}}(\lambda)=\Pr(\hat y \ne y \mid s(x)\le\lambda)$ be the risk among answered inputs.
+Because $R_{\mathrm{sel}}$ is not monotone in $\lambda$, we treat each candidate as a hypothesis
+$H_\lambda\!:\,R_{\mathrm{sel}}(\lambda)>\alpha$, compute a valid Hoeffding--Bentkus $p$-value on the
+calibration fold, and apply family-wise error control.
+
+\begin{proposition}[Selective-risk validity]
+\label{prop:ltt}
+Under Assumption~\ref{asm:exch}, the family-wise-error-controlled procedure returns $\hat\lambda$
+with $\Pr\!\big(R_{\mathrm{sel}}(\hat\lambda) \le \alpha\big) \ge 1-\delta$, the probability taken
+over the calibration draw \citep{ltt2021}.
+\end{proposition}
+
+\paragraph{Adaptive halting (Conformal Risk Control).} The halting loss
+$L(\lambda)=\mathbf 1[\text{early answer}\ne\text{full-budget answer}]\in[0,1]$ is monotone in the
+agreement threshold. CRC selects the most compute-saving $\hat\lambda$ satisfying the finite-sample
+bound $\tfrac{n}{n+1}\widehat R(\lambda) + \tfrac{1}{n+1} \le \alpha$.
+
+\begin{proposition}[Halting-risk control]
+\label{prop:crc}
+Under Assumption~\ref{asm:exch} and monotonicity of $L$, the selected $\hat\lambda$ satisfies
+$\mathbb E\big[L(\hat\lambda)\big]\le\alpha$ \citep{crc2022}. We verify monotonicity of
+the empirical risk curve at run time and report it.
+\end{proposition}
+
+\paragraph{Scope.} Both statements are \emph{marginal} over the calibration draw and hold only under
+Assumption~\ref{asm:exch}; neither is conditional on a particular test input. Validity of the score
+mapper is irrelevant to \emph{validity} of the certificate (only to its \emph{power}), because the
+mapper is fit on a fold disjoint from calibration. We deliberately show in
+Section~\ref{sec:experiments} that both guarantees fail under distribution shift, where
+Assumption~\ref{asm:exch} is violated---the motivation for treating an abstention as a routing signal
+rather than a promise.

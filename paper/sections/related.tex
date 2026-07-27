@@ -1,4 +1,27 @@
 \section{Related Work}
-% See docs/RELATED_WORK.md. EBT (scalar energy, no restarts/geometry/guarantee); curvature-
-% calibration over weights; energy-OOD/abstention (scalar, static); conformal thinking (token
-% budgets, no EBM). Our object and guarantee are new.
+\label{sec:related}
+
+\paragraph{Energy-based reasoners.} EBT owns scalar-energy confidence and adaptive compute
+\citep{ebt2025}, and IREM/IRED own the learned inference-time landscape \citep{irem2022,ired2024}, but
+none use \emph{restarts}, \emph{landscape geometry}, or a \emph{calibration guarantee}. We add all
+three on top of such a reasoner, and show---adversarially---that the geometry advantage over the
+scalar energy does not extend to beating a softmax confidence under our current (basin-center)
+reasoner.
+
+\paragraph{Curvature and calibration.} Work relating sharpness/curvature to calibration and
+generalization operates over the loss in \emph{weight} space \citep{sam2020,toosharp2026}; our
+curvature is of the energy over the \emph{latent}, per input, computed at inference---a different
+quantity with a different purpose (a per-input reliability feature, not a training regularizer).
+
+\paragraph{Uncertainty and abstention.} MSP + temperature scaling \citep{tempscaling2017}, deep
+ensembles \citep{deepensembles2017}, MC-dropout \citep{mcdropout2016}, and energy-based OOD detection
+\citep{energyood2020} are static, scalar confidence signals; SelectiveNet learns a reject option
+end-to-end \citep{selectivenet2019}. We instead extract signal from the \emph{dynamics of inference}
+and wrap it in a distribution-free certificate (LTT/CRC, \citep{ltt2021,crc2022}), with an explicit,
+demonstrated failure mode under distribution shift.
+
+\paragraph{Adaptive computation.} PonderNet and related methods learn halting policies
+\citep{pondernet2021}; EBT ``thinks longer'' on hard inputs via energy \citep{ebt2025}. Our halting
+carries a \emph{finite-sample error budget} via CRC rather than a learned or heuristic stop rule. To
+our knowledge, no prior work turns inference-time landscape geometry into a distribution-free
+selective certificate for an EBM reasoner.

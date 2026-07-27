@@ -1,6 +1,122 @@
 \section{Experiments}
-% Tasks: arithmetic, graph planning, logic, hard Sudoku (ID + OOD), operated at 70-85% base
-% accuracy. Baselines conformalized identically: raw energy, energy spread, MSP+temp,
-% MC-dropout, deep ensembles. Metrics: AURC (primary), selective acc @ coverage, ECE,
-% coverage validity, halting compute-accuracy Pareto. Falsification: paired-bootstrap CI on
-% Delta AURC(energy - geometry). Figures F2-F6, Tables T1-T3.
+\label{sec:experiments}
+
+We ask three questions. (i) Does the per-input geometry of the descent beat the scalar terminal
+energy---the signal Energy-Based Transformers use---as a nonconformity score? (ii) Is any lift
+actually due to the \emph{restart} geometry, and which features drive it? (iii) Do the
+distribution-free guarantees hold in-distribution and behave as designed under shift? A fourth,
+adversarial question---does geometry beat a \emph{standard softmax-confidence} baseline?---turns
+out to sharply bound the contribution, and we report it prominently.
+
+\paragraph{Setup.} We use two structurally distinct synthetic reasoning families, each tuned to a
+partially-competent $70$--$85\%$ base-accuracy regime (so selective prediction has error to remove)
+with an out-of-distribution split: \emph{arithmetic} (sum classification; ID accuracy $\approx
+0.81$; OOD $=$ larger operand magnitudes) and \emph{graph shortest-path} (BFS path-length
+classification; ID $\approx 0.70$ over a majority-class baseline of $0.41$; OOD $=$ larger graphs).
+Every method is conformalized identically, so the comparison is purely \emph{which nonconformity
+score}. Baselines: the raw-energy family ($\bar E$, $E_{\min}$, energy spread) and standard
+softmax-confidence scores from the decoder logits (MSP, temperature-scaled MSP fit on a disjoint
+fold, predictive entropy). The learned geometry mapper is a logistic model over the $14$-feature
+vector, fit on a fold \emph{disjoint} from calibration. Our primary metric is AURC (area under the
+risk--coverage curve; lower is better); the falsification test is a paired-bootstrap $95\%$ CI on
+$\Delta\mathrm{AURC} = \mathrm{AURC}(\text{baseline}) - \mathrm{AURC}(\text{geometry})$, reported over
+$5$ seeds per task.
+
+\paragraph{Geometry beats scalar energy (Table~\ref{tab:main}).} On both tasks the geometry mapper
+beats the best raw-energy baseline on all five seeds: $\Delta\mathrm{AURC} = +0.085\pm0.036$
+(arithmetic) and $+0.111\pm0.054$ (graph), every seed's CI excluding zero. The risk--coverage curves
+(Fig.~\ref{fig:f2}) show geometry far below the energy scores across all coverage levels. This is the
+Energy-Based-Transformer comparison, and geometry wins it decisively and reproducibly on two
+structurally different tasks---so the effect is not an artifact of additive arithmetic.
+
+\paragraph{Restarts are the mechanism (Fig.~\ref{fig:s1}).} Sweeping the number of restarts $K$, the
+lift grows monotonically: at $K{=}1$---a single descent with no basin geometry, essentially the EBT
+setting---geometry separates on only $1/5$ seeds ($\Delta\mathrm{AURC}=+0.026$); by $K{\ge}8$ it is
+$5/5$ ($+0.083$ at $K{=}16$). The secondary falsifier (``$K{>}1$ gives no lift'') therefore does not
+fire. A leave-one-group-out feature ablation (Table~\ref{tab:ablation}) localizes the source:
+\emph{basin agreement} is the dominant driver (removing it nearly doubles arithmetic AURC toward the
+energy level), descent dynamics helps (most on graph), and---crucially---dropping the energy
+features leaves AURC essentially unchanged ($\text{drop\_energy}\approx\text{full}$, both far below
+raw energy). The win over energy comes from the \emph{non-energy} geometry, not from re-using the
+energy statistics the vector happens to contain. Figure~\ref{fig:f5} shows the corresponding
+per-feature separation.
+
+\paragraph{The guarantees behave as designed (Figs.~\ref{fig:f3}--\ref{fig:f6}).} In-distribution,
+Learn-then-Test selective prediction is valid: achieved selective risk sits on or below the nominal
+target across the $\alpha$-sweep (Fig.~\ref{fig:f3}). Conformal-Risk-Control adaptive halting
+(Fig.~\ref{fig:f4}) chooses a basin-agreement threshold that uses $42\%$ of the step budget---$58\%$
+compute saved---at a halting risk of $0.9\% \le \alpha{=}10\%$ with no end-task accuracy loss, and
+the halting risk was empirically monotone in the threshold (CRC's assumption). Under distribution
+shift the guarantee \emph{breaks by design} (Fig.~\ref{fig:f6}): the ID-calibrated threshold, applied
+to OOD, achieves $76\%$ selective risk against a $10\%$ target---exchangeability is violated, so the
+certificate is void. This is precisely the argument for abstention / shift detection in critical
+systems: the guarantees are marginal under exchangeability, and we show them fail loudly when it
+does not hold.
+
+\paragraph{Key caveat: geometry does not beat softmax confidence (Table~\ref{tab:main}).} When the
+baseline set is widened from scalar energy to a standard softmax-confidence score (MSP,
+temperature-scaled MSP, predictive entropy), the broader claim does \emph{not} survive. Against the
+best of \emph{all} baselines, $\Delta\mathrm{AURC} = -0.011\pm0.006$ on arithmetic ($0/5$ seeds
+favor geometry) and $-0.034\pm0.008$ on graph ($0/5$): softmax confidence \emph{ties} geometry on
+arithmetic and \emph{beats} it on graph. In Fig.~\ref{fig:f2}, geometry, MSP, and entropy overlap at
+the bottom, all far below the energy scores. We therefore state the contribution precisely:
+\textbf{inference-time landscape geometry beats the EBT scalar-energy signal, but is not a better
+nonconformity score than a well-calibrated softmax}---under this reasoner. The likely reason is the
+reasoner itself: a supervised basin-center energy with a shallow decoder makes the softmax already
+informative, leaving little for geometry to add beyond energy. The distribution-free certificate
+machinery---selective prediction, adaptive halting, and their in-distribution validity and
+out-of-distribution breakage---holds regardless of which score wins.
+
+\paragraph{The landscape was the limiter (learned-landscape reasoner).} We test that explanation
+directly by replacing the supervised basin-center energy with a genuinely learned, input-conditioned
+multi-basin landscape---per-class latent anchors trained as attractors by a contrastive-plus-%
+stationarity objective (pushing the correct anchor below competitors and driving
+$\|\nabla_z E(\mu_y)\|\!\to\!0$ so it is a local minimum), with annealed Langevin descent at
+inference. This reasoner reasons (ID $0.72$--$0.90$), and under it geometry \emph{does} beat the best
+softmax-confidence baseline: over $5$ seeds, $\Delta\mathrm{AURC} = +0.007\pm0.005$ against the best
+overall baseline ($4/5$ seeds' CI excluding zero), and $+0.159\pm0.051$ against scalar energy---%
+compared to $-0.011$ ($0/5$) under the basin-center reasoner. The margin over softmax is small but
+consistent, and it flips the caveat: inference-time landscape geometry can beat a well-calibrated
+softmax \emph{when the landscape is genuinely multi-basin}. We report this on arithmetic; widening
+the margin (larger models, graph, more seeds) is ongoing.
+
+\input{tables/T1_main}
+\input{tables/T2b_feature_ablation}
+\input{tables/T2_kablation}
+
+Figures~\ref{fig:f2}--\ref{fig:f6} and Fig.~\ref{fig:s1} are regenerated from the append-only results
+ledger; Table~\ref{tab:repro} (appendix) lists seeds, configuration hashes, and the environment.
+
+% ---- figure blocks (PNGs regenerated by analysis/make_figures.py from the ledger) ----
+\begin{figure}[t]\centering
+  \includegraphics[width=0.62\linewidth]{F2_risk_coverage.png}
+  \caption{\textbf{Risk--coverage (arithmetic).} Geometry (blue) is far below every energy score;
+  MSP and predictive entropy overlap it---the caveat of Sec.~\ref{sec:experiments}.}
+  \label{fig:f2}
+\end{figure}
+\begin{figure}[t]\centering
+  \includegraphics[width=0.6\linewidth]{S1_k_restart_lift.png}
+  \caption{\textbf{Restart ablation.} $\Delta\mathrm{AURC}$ over the best energy baseline grows with
+  the number of restarts $K$; $K{=}1\approx$ EBT barely separates.}
+  \label{fig:s1}
+\end{figure}
+\begin{figure}[t]\centering
+  \includegraphics[width=0.48\linewidth]{F3_coverage_validity.png}\hfill
+  \includegraphics[width=0.48\linewidth]{F4_halting_pareto.png}
+  \caption{\textbf{Left (F3):} LTT selective-risk validity---achieved risk on/below the diagonal.
+  \textbf{Right (F4):} CRC adaptive halting saves $\sim$58\% compute at a guaranteed risk with no
+  accuracy loss.}
+  \label{fig:f3}\label{fig:f4}
+\end{figure}
+\begin{figure}[t]\centering
+  \includegraphics[width=0.98\linewidth]{F5_feature_diagnostics.png}
+  \caption{\textbf{F5.} Which geometry features separate correct from incorrect (basin agreement
+  dominates), with the correct/incorrect distributions of a basin and a curvature feature.}
+  \label{fig:f5}
+\end{figure}
+\begin{figure}[t]\centering
+  \includegraphics[width=0.5\linewidth]{F6_ood_stress.png}
+  \caption{\textbf{F6.} The ID-calibrated selective-risk guarantee holds in-distribution (blue, on
+  the diagonal) and breaks under shift (red, far above)---the argument for abstention.}
+  \label{fig:f6}
+\end{figure}

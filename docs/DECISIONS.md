@@ -2,6 +2,19 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-27 — Phase 4g: IRED reasons via contrastive+stationarity (not DSM); flips the 4e caveat
+**Decision:** the working IRED objective is **IREM-style contrastive + stationarity + decode**, not
+denoising score matching. DSM was stuck (score net never fit under the double-grad objective).
+Contrastive alone (anchor below competitors/random) makes the correct anchor *low-energy* but not a
+*local minimum*, so descent never settles there; the fix is a **stationarity** term
+`||∇_z E(μ_y)||²→0` (weight `ired_stat_weight`) that makes anchors genuine attractors. With the
+annealed Langevin sampler this reasons (ID 0.72–0.90), and under the learned landscape geometry beats
+softmax confidence 4/5 seeds — reversing the Phase-4e caveat. **Why it matters:** it isolates the
+cause of that caveat (the simple basin-center landscape, not the geometry idea). Still opt-in
+(`objective="ired"`, default `basin_center` unchanged) and additive; merged to `main` as a working,
+tested option. IRED ledger rows are a distinct `(K, n_test)`/config group so they do not pollute the
+basin-center T1 aggregates.
+
 ## 2026-07-27 — Phase 4g: IRED training is opt-in and its energy/anchors are additive (WIP)
 **Decision:** the IRED landscape objective is an **opt-in** `[train] objective="ired"` that switches
 `mlp_ebm` to a fully-learned `energy_form="learned"` (no bowl) + a per-class anchor `nn.Embed`, and

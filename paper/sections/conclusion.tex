@@ -1,4 +1,23 @@
 \section{Conclusion}
-% The geometry of an EBM reasoner's inference-time descent is a calibrated, certifiable
-% reliability signal. Limitations: exchangeability, guarantee breaks under shift (hence
-% abstention), current tasks are structured. Future: scale to language EBTs, IRED training.
+\label{sec:conclusion}
+
+The geometry of an energy-based reasoner's inference-time descent is a usable reliability signal, and
+distribution-free risk control turns it into two certificates---selective prediction and adaptive
+halting---that are valid in-distribution and, by design, fail loudly under shift. Empirically,
+landscape geometry beats the scalar terminal energy that Energy-Based Transformers use, the advantage
+is caused by the restart geometry (basin agreement above all), and adaptive halting cuts inference
+compute substantially at a guaranteed error budget.
+
+\paragraph{Limitations, honestly.} Two matter. First, the guarantees are marginal under
+exchangeability and provably void under distribution shift; we treat an abstention as a routing
+signal, not a promise. Second, the strength of the geometry signal depends on the landscape: under a
+supervised basin-center reasoner, geometry beats scalar energy but only ties/loses to a well-%
+calibrated softmax. That dependence is itself informative---and encouraging---because replacing the
+landscape with a genuinely learned, multi-basin energy (per-class attractors trained by a
+contrastive-plus-stationarity objective, annealed sampling) makes geometry beat softmax confidence
+($4/5$ seeds), confirming that the simple landscape was the limiter, not the geometry idea.
+
+\paragraph{Future work.} The learned-landscape result is on arithmetic and the margin over softmax is
+small; widening it---larger models and richer landscapes (annealed score matching), the graph and
+further tasks, more seeds---is the immediate next step. Beyond that: scaling to language-scale EBTs
+and richer geometry (full spectra, mode connectivity).
