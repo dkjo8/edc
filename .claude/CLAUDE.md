@@ -43,8 +43,10 @@ inference-time descent** into distribution-free reliability certificates. Read
   so the win is non-energy features — rebuts "it's just energy").
 - Phase 5 paper draft ✅ (`paper/sections/*.tex` written from the real results; figures/tables wired;
   compiles via `tectonic`).
-- Phase 4g/4h IRED landscape ✅ (opt-in `objective="ired"` contrastive+stationarity + annealed
-  sampler; it reasons). Under the learned landscape geometry beats softmax **4/5 seeds on arithmetic**
-  (flips the 4e caveat) but only **ties on graph** (1/5) — the flip is real but **task-dependent**.
-  Aggregation is objective-aware so IRED never pollutes the basin-center T1.
-- Next: stronger IRED graph reasoner + more seeds to widen the margin · E3/E4 · Modal · scale-up.
+- Phase 4g/4h/4i IRED landscape ✅ (opt-in `objective="ired"` contrastive+stationarity + annealed
+  sampler; it reasons). Under the learned landscape geometry beats softmax **4/5 on arithmetic**
+  (flips the 4e caveat) but **ties on graph — even with a strong ID~0.83 reasoner (0/5)**, so the
+  flip is **genuinely task-dependent, not a reasoner-quality artifact** (I tested that). Aggregation
+  is objective-aware so IRED never pollutes the basin-center T1.
+- Next (open question): characterize *when* descent geometry adds over softmax · richer geometry ·
+  E3/E4 · Modal · scale-up.

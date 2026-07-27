@@ -1,11 +1,12 @@
-# Phase 4h: IRED learned-landscape reasoner on graph shortest-path — does the softmax-caveat flip
-# (Phase 4g, arithmetic) generalize to a second task? IRED is a weaker graph reasoner than the
-# basin-center model (ID ~0.58 vs 0.70; still above the 0.42 majority baseline), so this is an
-# honest, harder test.
+# Phase 4i: STRONGER IRED learned-landscape reasoner on graph shortest-path. The Phase-4h IRED graph
+# reasoner was capacity-limited (ID ~0.58) and only tied softmax; a larger model (hidden 256, latent
+# 48, more training) reaches ID ~0.81 — matching/beating the basin-center reasoner. This tests the
+# hypothesis that the weak graph flip was a weak-reasoner artifact: does the stronger IRED reasoner
+# now let geometry beat softmax on graph?
 [run]
 task = "graph_planning"
 seed = 0
-notes = "IRED learned-landscape reasoner on graph"
+notes = "stronger IRED learned-landscape reasoner on graph"
 
 [task.graph_planning]
 n_nodes = 7
@@ -14,8 +15,8 @@ edge_prob = 0.4
 max_len = 4
 
 [model]
-latent_dim = 32
-hidden_dim = 128
+latent_dim = 48
+hidden_dim = 256
 context_dim = 64
 
 [inference]
@@ -30,14 +31,14 @@ temperature = 0.01
 
 [train]
 objective = "ired"
-epochs = 100
-n_train = 10000
+epochs = 110
+n_train = 12000
 ired_ridge = 0.2
 ired_stat_weight = 8.0
 ired_decode_weight = 4.0
 
 [eval]
-n_eval = 800
+n_eval = 700                # distinct (K, n_test) group from the Phase-4h weak run
 
 [conformal]
 alpha = 0.1

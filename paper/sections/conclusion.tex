@@ -15,11 +15,12 @@ supervised basin-center reasoner, geometry beats scalar energy but only ties/los
 calibrated softmax. That dependence is itself informative---and encouraging---because replacing the
 landscape with a genuinely learned, multi-basin energy (per-class attractors trained by a
 contrastive-plus-stationarity objective, annealed sampling) makes geometry beat softmax confidence on
-arithmetic ($4/5$ seeds), evidence that the landscape---not the geometry idea---gates the effect. On
-graph, where that learned reasoner is weaker, the same recipe only ties softmax, so we claim the flip
-narrowly: demonstrated on one task, task-dependent, with a small margin.
+arithmetic ($4/5$ seeds). But this does not generalize: on graph, even an equally strong learned
+reasoner (ID $\approx0.83$) leaves geometry only tying softmax ($0/5$)---so the benefit of landscape
+geometry over a well-calibrated softmax is task-dependent, not a general property of learned
+landscapes nor an artifact of accuracy. We report this boundary plainly.
 
-\paragraph{Future work.} Making the learned-landscape flip robust and general is the immediate next
-step: stronger learned reasoners (especially on graph), richer landscapes (annealed score matching),
-and more seeds to widen the small margin. Beyond that: scaling to language-scale EBTs and richer
-geometry (full spectra, mode connectivity).
+\paragraph{Future work.} Characterizing \emph{when} descent geometry adds over softmax---which task
+structures and landscapes---is the interesting open question raised by the arithmetic/graph contrast.
+Beyond that: richer geometry (full spectra, mode connectivity), scaling to language-scale EBTs, and
+more seeds/tasks.
