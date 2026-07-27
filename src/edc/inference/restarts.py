@@ -14,7 +14,7 @@ import jax
 import jax.numpy as jnp
 
 from edc.energy.base import ReasonerFns
-from edc.inference.optimizer import langevin_descent
+from edc.inference.optimizer import annealed_langevin, langevin_descent
 from edc.inference.trajectory import TrajectoryRecord
 
 
@@ -38,13 +38,23 @@ def solve(fns: ReasonerFns, params, x, cfg, key, k_restarts: int | None = None,
     key_init, key_lan = jax.random.split(key)
     z0 = cfg.inference.init_scale * jax.random.normal(key_init, (B * K, d))
 
-    z_final, energies, gnorms, z_traj = langevin_descent(
-        fns.energy, params, h_rep, z0, key_lan,
-        step_size=cfg.inference.step_size,
-        temperature=cfg.inference.temperature,
-        steps=cfg.inference.steps,
-        record_z=record_steps,
-    )
+    if getattr(cfg.inference, "sampler", "langevin") == "annealed":
+        # Geometric per-step size schedule: anneal_levels blocks, each held for steps_per_level.
+        levels = jnp.geomspace(cfg.inference.anneal_step_max, cfg.inference.anneal_step_min,
+                               cfg.inference.anneal_levels)
+        step_sizes = jnp.repeat(levels, cfg.inference.anneal_steps_per_level)
+        z_final, energies, gnorms, z_traj = annealed_langevin(
+            fns.energy, params, h_rep, z0, key_lan, step_sizes,
+            temperature=cfg.inference.temperature, record_z=record_steps,
+        )
+    else:
+        z_final, energies, gnorms, z_traj = langevin_descent(
+            fns.energy, params, h_rep, z0, key_lan,
+            step_size=cfg.inference.step_size,
+            temperature=cfg.inference.temperature,
+            steps=cfg.inference.steps,
+            record_z=record_steps,
+        )
 
     logits = fns.decode(params, z_final)                 # (N, C)
     pred = jnp.argmax(logits, axis=-1)                   # (N,)

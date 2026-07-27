@@ -134,15 +134,22 @@ latent **codebook** + a fully-learned multi-basin energy (no fixed bowl), traine
 score matching** toward the true-class anchor across noise scales, plus a reachability term
 (anchors below random z0) and anchor/basin decode. `basin_center` is unchanged (non-breaking).
 
-**Honest status: does not yet reason.** The objective trains cleanly (anchors decode, reachability
-gap → 0), but DSM stays high and **ID accuracy is ~chance** — descent from z0 under the shared
-**fixed-step Langevin** sampler does not reliably land in the correct basin. This is the classic
-EBM-sampling gap: DSM shapes *local* basins but a fixed-step descent doesn't reach the right one.
-Making it work needs **annealed Langevin sampling** at inference (step size ∝ σ², descending noise
-schedule) and a stronger score network — a real research iteration, tracked as the next step. The
-Phase-4e stress test is therefore **not** re-run under IRED yet (it would be meaningless at chance
-accuracy). Shipped as experimental scaffolding on the `phase-4g-ired` branch; `main`/v0.0.1 stay on
-the working basin-center reasoner.
+**Honest status: does not yet reason (two bounded attempts).** The objective trains cleanly
+(anchors decode, reachability gap → 0), but **ID accuracy stays ~chance**.
+1. *Sampler.* First suspicion was the fixed-step Langevin sampler, so an **annealed Langevin**
+   sampler was added (opt-in `[inference] sampler="annealed"` — a geometric explore→settle
+   step-size schedule; a genuinely useful, tested, non-breaking inference option). It did **not**
+   help accuracy.
+2. *Root cause.* The **denoising-score-matching loss is stuck** (`dsm ≈ 16` of a trivial ≈ 24 for
+   `d`=24), essentially flat across epochs (16.0 → 15.5 from e30 → e60) and samplers — so the
+   learned energy has almost no useful gradient field regardless of how you sample it. The blocker
+   is the **score network not fitting** under the double-grad DSM objective, not the sampler.
+
+**Real next step:** a σ-conditioned **NCSN-style** score network (condition the energy/score on the
+noise level) + a proper score-matching setup, likely more capacity/training — a dedicated redesign,
+not a tuning tweak. The Phase-4e stress test stays **not** re-run under IRED (meaningless at chance
+accuracy). All of this is on `phase-4g-ired` (draft PR #2), **not merged**; `main`/v0.0.1 keep the
+working basin-center reasoner. The annealed sampler itself is general and could be reused elsewhere.
 
 **Likely cause of the softmax tie + the lever.** The reasoner is the Phase-1 **supervised
 basin-center** model with a

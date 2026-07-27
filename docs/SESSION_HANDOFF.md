@@ -65,10 +65,13 @@
 - **Phase 4g (IRED landscape training — WIP, `phase-4g-ired` branch, NOT merged): 🚧** opt-in
   `[train] objective="ired"`: learned per-class anchor codebook + fully-learned multi-basin energy
   (`mlp_ebm` `energy_form="learned"`), denoising-score-matching loss + reachability + anchor decode
-  (`train/losses.ired_loss_fn`). **Trains cleanly but does NOT yet reason** (ID acc ~chance): the
-  fixed-step Langevin sampler doesn't reach the right basin. **Next iteration:** annealed Langevin
-  sampling at inference (step ∝ σ², descending noise) + stronger score net, then re-run the 4e
-  stress test. `main`/v0.0.1 unaffected (default basin_center unchanged; 89 tests green).
+  (`train/losses.ired_loss_fn`). **Trains cleanly but does NOT yet reason** (ID acc ~chance). Two
+  bounded attempts: (1) added an **annealed Langevin** sampler (`[inference] sampler="annealed"`,
+  `optimizer.annealed_langevin`) — didn't help; (2) diagnosed the real blocker: the **DSM score
+  loss is stuck** (`dsm≈16`, flat across epochs/samplers) — the score network isn't fitting under
+  the double-grad objective. **Real next step:** a σ-conditioned **NCSN-style** score net (not a
+  tuning tweak). `main`/v0.0.1 unaffected (default basin_center unchanged; **92 tests green**). The
+  annealed sampler is a general, reusable, tested inference option.
 - **Deferred / Phase 5: stubbed.** Modal, paper.
 
 ## What is real vs stub

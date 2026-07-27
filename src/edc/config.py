@@ -45,6 +45,14 @@ class InferenceCfg:
     temperature: float = 0.05
     init_scale: float = 1.0
     grad_tol: float = 1e-3
+    # Inference sampler: "langevin" (fixed-step, default) or "annealed" (simulated-annealing
+    # Langevin — a geometric step-size/noise schedule that settles into a mode; needed for the
+    # learned IRED landscape). Total steps = anneal_levels * anneal_steps_per_level.
+    sampler: str = "langevin"
+    anneal_levels: int = 10
+    anneal_steps_per_level: int = 8
+    anneal_step_max: float = 0.2     # largest per-step size (explore)
+    anneal_step_min: float = 0.01    # smallest per-step size (settle into a basin)
 
 
 @dataclass(frozen=True)
