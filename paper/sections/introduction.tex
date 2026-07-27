@@ -1,6 +1,27 @@
 \section{Introduction}
-% Claim: EBM reasoners optimize at test time; the trajectory itself is signal.
-% Contributions: (1) geometry features (basin agreement, latent curvature, dynamics);
-% (2) adaptive halting via Conformal Risk Control; (3) selective prediction/abstention via
-% Learn-then-Test, with a distribution-free guarantee; (4) evidence that geometry beats the
-% scalar energy EBT uses. State the falsification criterion up front.
+\label{sec:intro}
+
+An energy-based reasoner answers by \emph{optimizing}: it descends a learned energy $E_\theta(h_x,z)$
+over a latent and decodes the optimum. Energy-Based Transformers make this explicit and use the
+scalar terminal energy as a confidence signal, thinking longer on hard inputs \citep{ebt2025}. But a
+single scalar discards almost everything about the \emph{descent}. We ask whether the per-input
+\emph{geometry} of that descent---how independent stochastic restarts agree, how sharp or flat the
+optimum is, and how the dynamics settled---is a better, and \emph{certifiable}, signal of
+correctness.
+
+We run inference from $K$ stochastic restarts and read off basin agreement, local curvature of the
+energy over the latent (via Hessian--vector products), and descent dynamics, then map this
+$14$-feature descriptor to a nonconformity score. Wrapped in distribution-free risk control, this
+yields two certificates: \emph{selective prediction} (answer only when a guaranteed error rate holds
+among answered inputs, else abstain; via Learn-then-Test \citep{ltt2021}) and \emph{adaptive halting}
+(stop as soon as a guaranteed error budget is met; via Conformal Risk Control \citep{crc2022}).
+
+\paragraph{Contributions and what we falsify.} (1) The geometry features and the two
+distribution-free certificates over an EBM reasoner. (2) A stated falsification criterion---if the
+paired-bootstrap CI on $\Delta\mathrm{AURC}(\text{energy}-\text{geometry})$ includes zero, the core
+claim fails---which we \emph{pass}: geometry beats the EBT scalar energy on two structurally distinct
+tasks, and the lift is caused by the restart geometry (it grows with $K$; $K{=}1$ barely separates).
+(3) An adversarial, negative result we report prominently: against a standard softmax-confidence
+baseline, geometry only \emph{ties} (arithmetic) or \emph{loses} (graph). So the honest claim is that
+inference-time landscape geometry beats the EBT scalar-energy signal specifically, while the
+distribution-free certificate machinery---and its designed failure under shift---stands on its own.

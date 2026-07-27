@@ -62,7 +62,11 @@
   (5 seeds/task):** `drop_energy` ≈ `full` and both far below raw energy → geometry's win over
   energy is from the **non-energy** features; **basin agreement is the dominant driver** (dynamics
   second, esp. graph; curvature/energy minor). Rebuts "it's just energy"; consistent with F5.
-- **Deferred / Phase 5: stubbed.** IRED landscape training (priority lever, below), Modal, paper.
+- **Phase 5 (paper draft): ✅** all seven `paper/sections/*.tex` written (intro, background, method,
+  guarantees, experiments, related, conclusion) grounded in the real results incl. the honest
+  softmax caveat; figures F2–F6/S1 and tables T1/T2/T2b/T3 wired in; `paper/main.tex` compiles to a
+  PDF via `tectonic` (`cd paper && tectonic main.tex`). Abstract states the honest scope.
+- **Deferred: stubbed.** IRED landscape training (priority lever, `phase-4g-ired` draft PR), Modal.
 
 ## What is real vs stub
 

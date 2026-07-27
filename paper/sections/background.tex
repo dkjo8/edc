@@ -1,4 +1,26 @@
 \section{Background}
-% Energy-based reasoning as latent Langevin descent (IREM/IRED, EBRM). Conformal prediction,
-% Conformal Risk Control, Learn-then-Test. Selective prediction. Sharpness/curvature (over
-% weights) vs our curvature over the latent.
+\label{sec:background}
+
+\paragraph{Energy-based reasoning.} A reasoner can treat answering as optimization over a latent:
+learn $E_\theta(h_x,z)$ so that descending it lands $z$ in a basin decoding to the correct answer.
+IREM learns this landscape by iterative energy minimization \citep{irem2022}; IRED replaces the
+hand-shaped landscape with an annealed, diffusion-style objective \citep{ired2024}; Energy-Based
+Transformers scale the idea and use the scalar terminal energy as confidence and as an adaptive-compute
+signal \citep{ebt2025}. Our reasoner follows this template but our object of study is the
+\emph{descent trajectory}, not the model.
+
+\paragraph{Distribution-free risk control.} Split-conformal prediction turns exchangeable
+nonconformity scores into finite-sample coverage \citep{conformalintro2021}. Conformal Risk Control
+extends this to any bounded, monotone risk, choosing a threshold with $\mathbb E[L]\le\alpha$
+\citep{crc2022}. Learn-then-Test handles \emph{non}-monotone risks (such as selective error) by
+treating each threshold as a hypothesis with a valid $p$-value and controlling family-wise error
+\citep{ltt2021}. Selective prediction---answer-or-abstain with a reject option---is classically
+learned end-to-end \citep{selectivenet2019}; we instead certify it post-hoc and distribution-free.
+
+\paragraph{Confidence and curvature.} Standard confidence baselines include maximum softmax
+probability with temperature scaling \citep{tempscaling2017}, deep ensembles \citep{deepensembles2017},
+and MC-dropout \citep{mcdropout2016}; energy has also been used for OOD detection \citep{energyood2020}.
+Curvature is linked to calibration and generalization, but over the \emph{loss surface in weight
+space} \citep{sam2020,toosharp2026}; ours is curvature of the \emph{energy over the latent, per
+input}---a distinct object. Adaptive-compute methods such as PonderNet learn when to stop
+\citep{pondernet2021} but without a distribution-free error budget.
