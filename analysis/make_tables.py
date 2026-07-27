@@ -12,9 +12,9 @@ from edc.config import REPO_ROOT
 from edc.ledger import read_all
 
 try:  # sibling import when run as a script (analysis/ on sys.path)
-    from aggregate import aggregate_by_k, selective_rows, tasks_present
+    from aggregate import aggregate_by_k, headline_cell, selective_rows, tasks_present
 except ImportError:  # pragma: no cover
-    from analysis.aggregate import aggregate_by_k, selective_rows, tasks_present
+    from analysis.aggregate import aggregate_by_k, headline_cell, selective_rows, tasks_present
 
 TABLE_DIR = REPO_ROOT / "paper" / "tables"
 
@@ -42,24 +42,30 @@ def _tabular(header: list[str], rows: list[list[str]], colspec: str, caption: st
 
 
 def _t1(rows: list[dict]) -> str:
-    """Main results, one row per task (each at its own primary K, aggregated over seeds)."""
+    """Main results, one row per task (each at its own primary K, aggregated over seeds).
+
+    Reports geometry's ΔAURC against **both** the best raw-energy baseline (invariant-8 sacred test)
+    and the best of *all* baselines (energy + MSP + temperature + entropy), with the seeds-win count
+    for the stronger, all-baseline comparison.
+    """
     body, all_ids = [], []
     for task in tasks_present(rows):
-        agg = aggregate_by_k(rows, task=task)
-        a = agg[max(agg)]                                  # primary K = largest for that task
-        win = f"{a['seeds_ci_excludes_0']}/{a['n_seeds']}"
+        a = headline_cell(rows, task=task)             # largest same-config baseline-carrying sweep
+        win = f"{a['seeds_ci_excludes_0_baseline']}/{a['n_seeds']}"
         body.append([
             _esc(task), str(a["k_restarts"]), _pm(a["accuracy_id"], 2), _pm(a["aurc_geometry"]),
-            _pm(a["aurc_best_energy"]), _pm(a["delta_aurc"]), win, _pm(a["ltt_coverage"], 2),
+            _pm(a["delta_aurc"]), _pm(a["delta_aurc_baseline"]), win, _pm(a["ltt_coverage"], 2),
         ])
         all_ids += a["run_ids"]
-    header = ["task", "$K$", "acc", "AURC geom", "AURC energy", r"$\Delta$AURC", "seeds win",
-              "LTT cov"]
+    header = ["task", "$K$", "acc", "AURC geom", r"$\Delta$AURC vs energy",
+              r"$\Delta$AURC vs best base", "seeds win", "LTT cov"]
     return _tabular(
         header, body, "lrcccccc",
-        "Main selective-prediction results across reasoning families: geometry vs the best "
-        "raw-energy baseline (mean$\\pm$std over seeds). $\\Delta$AURC $>0$ with the CI clearing 0 "
-        "means geometry wins.",
+        "Main selective-prediction results across reasoning families (mean$\\pm$std over seeds): "
+        "geometry's $\\Delta$AURC over the best raw-energy baseline and over the best of all "
+        "baselines (energy, MSP, temperature-scaled MSP, predictive entropy). $\\Delta$AURC $>0$ "
+        "with the CI clearing 0 means geometry wins; ``seeds win`` counts seeds beating the best "
+        "overall baseline.",
         "tab:main", f"run_ids={all_ids}")
 
 

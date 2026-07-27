@@ -48,8 +48,16 @@
   beats energy on **5/5 seeds**, ΔAURC +0.111±0.054 (vs arithmetic +0.083±0.034) — the discovery
   replicates on a structurally distinct family. `plotting.k_restart_lift` made task-aware so graph's
   fixed-K rows don't contaminate the arithmetic S1 figure.
-- **Deferred / Phases 4e–5: stubbed.** More tasks (logic/sudoku E3/E4), ≥5-seed full-fold E1 for T1,
-  Modal runner, paper write-up.
+- **Phase 4e (baseline stress test — softmax confidence): ✅ ⚠️ key caveat.** Added MSP,
+  temperature-scaled MSP, predictive-entropy baselines (`eval/baselines.py`), a
+  `delta_aurc_vs_best_baseline` falsification, task-aware `headline_cell`, per-task T1 with both
+  ΔAURCs. **Result (5 seeds/task):** geometry beats scalar **energy** (invariant 8 ✓: +0.085
+  arithmetic, +0.111 graph, 5/5 each) but does **not** beat softmax confidence — ΔAURC vs best
+  baseline is −0.011 (arith, 0/5) and −0.034 (graph, 0/5). MSP/entropy tie-or-beat geometry (F2).
+  **The "geometry is the best nonconformity score" claim fails against softmax confidence** under
+  the Phase-1 basin-center reasoner. Likely cause: shallow decoder + simple landscape → softmax
+  already informative. **Lever: Phase-4 IRED landscape training** (below).
+- **Deferred / Phase 5: stubbed.** Modal runner, paper write-up.
 
 ## What is real vs stub
 
@@ -61,17 +69,25 @@
   nonconformity mapper, split-conformal/LTT/CRC, `eval.evaluate`, `run_experiment.py`, F2/F3;
   **the sweep/aggregation/tables stack**: `run_sweep.py`, `analysis.aggregate`, `make_tables`
   (T1–T3), S1 K-lift figure; **adaptive halting**: `halting.adaptive`, `eval.evaluate_halting`,
-  `run_halting.py`, F4; **F5 mechanism + F6 OOD stress** (`feature_diagnostics`, `ood_validity`).
-- Stub: logic/hard tasks (E3/E4), Modal runner, paper write-up.
+  `run_halting.py`, F4; **F5 mechanism + F6 OOD stress** (`feature_diagnostics`, `ood_validity`);
+  **softmax-confidence baselines** (`eval/baselines.py`: MSP/temp/entropy).
+- Stub: **IRED landscape training** (`train/losses.py` is still the Phase-1 basin-center scheme),
+  logic/hard tasks (E3/E4), Modal runner, paper write-up.
 
-## Next steps (Phase 4e)
+## Next steps (Phase 4f) — reoriented by the 4e caveat
 
-1. **Third task (E3, logic/SAT) or hard sudoku (E4):** more generalization evidence; same pattern
-   as `graph_planning.py` (implement `tasks/logic.py`, tune, run the seed sweep — T1 gains a row).
-2. **Full-fold ≥5-seed E1 for T1:** the sweep's T1 uses reduced folds (n_test=600) at K=16; add a
-   seed sweep at the full E1 config (n_test=1500) for the headline table.
-3. **Paper write-up:** the figure set (F2–F6, S1) and tables (T1–T3) are complete for arithmetic;
-   wire them into `paper/` and draft the results section.
+1. **IRED landscape training (the priority).** Replace the supervised basin-center loss
+   (`train/losses.py`) with an IRED-style annealed-landscape / denoising-score-matching objective so
+   the energy is a genuinely learned multi-basin surface. Hypothesis: restart geometry then carries
+   signal the (now less-informative) softmax does not. **Re-run the 4e baseline stress test** — this
+   is the make-or-break experiment for the discovery's practical claim.
+2. **If geometry still ties softmax:** reframe honestly — the contribution is the distribution-free
+   *certificate* machinery (LTT/CRC + F2–F6) over an EBM reasoner, with geometry beating the EBT
+   scalar-energy signal specifically (invariant 8), not a universal win over all confidences.
+
+3. **Lower priority (after the IRED verdict):** a 3rd task (logic/sudoku, E3/E4) for more
+   generalization; full-fold ≥5-seed E1 for a headline T1; paper write-up (figure set F2–F6/S1 and
+   tables T1–T3 are complete for arithmetic + graph).
 
 ## Operating regime note
 

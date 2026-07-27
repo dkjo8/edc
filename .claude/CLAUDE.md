@@ -37,5 +37,7 @@ inference-time descent** into distribution-free reliability certificates. Read
   0.075 ID vs 0.762 OOD — guarantee breaks under shift, motivating abstention).
 - Phase 4d generalization ✅ (graph shortest-path task; E2: geometry beats energy 5/5 seeds,
   ΔAURC +0.111 — discovery replicates on a 2nd structurally distinct family; per-task T1).
-- Phase 4e logic/sudoku (E3/E4) · full-fold T1 · Modal · Phase 5 paper — stubbed,
-  `NotImplementedError` with a phase note until built.
+- Phase 4e baseline stress test ✅ ⚠️ (MSP/temp/entropy; geometry beats scalar energy 5/5 but
+  does NOT beat softmax confidence — ties arith, loses graph). Key caveat; see EXPERIMENTS.md.
+- Phase 4f IRED landscape training (the priority lever) · then E3/E4 · Modal · Phase 5 paper —
+  stubbed, `NotImplementedError` / Phase-1 placeholder until built.

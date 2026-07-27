@@ -36,6 +36,9 @@ _SCORE_STYLE = {
     "energy_min": {"color": "#b0794a", "lw": 1.4, "label": "energy Eₘᵢₙ (EBT)"},
     "energy_mean": {"color": "#c9a66b", "lw": 1.2, "label": "energy Ē"},
     "energy_std": {"color": "#a05195", "lw": 1.2, "label": "energy spread"},
+    "msp": {"color": "#d1495b", "lw": 1.2, "label": "MSP (softmax)"},
+    "temp_msp": {"color": "#e8825a", "lw": 1.2, "label": "MSP + temperature"},
+    "entropy": {"color": "#8d6e63", "lw": 1.2, "label": "predictive entropy"},
 }
 
 

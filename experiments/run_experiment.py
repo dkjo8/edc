@@ -55,6 +55,13 @@ def _print_summary(cfg, m: dict) -> None:
           f"best energy ({m['best_energy_baseline']})={m['aurc'][m['best_energy_baseline']]:.4f}")
     print(f"[edc] ΔAURC(best energy − geometry)={d:+.4f}  95% CI=[{lo:+.4f}, {hi:+.4f}]")
     print(f"[edc] falsification: {verdict}")
+    if "delta_aurc_vs_best_baseline" in m:
+        db, lob, hib = m["delta_aurc_vs_best_baseline"]
+        vb = "GEOMETRY WINS" if m["geometry_wins_vs_baseline"] else "not separated (CI includes 0)"
+        print(f"[edc] best baseline overall: {m['best_baseline']} "
+              f"(AURC={m['aurc'][m['best_baseline']]:.4f}, T={m['temperature']:.2f})")
+        print(f"[edc] ΔAURC(best baseline − geometry)={db:+.4f}  95% CI=[{lob:+.4f}, {hib:+.4f}]"
+              f"  -> {vb}")
     ltt_b = m["ltt"]
     print(f"[edc] LTT @ alpha={ltt_b['alpha']}, delta={ltt_b['delta']}: "
           f"coverage={ltt_b['coverage']:.3f}  selective_risk={ltt_b['selective_risk']:.3f}  "

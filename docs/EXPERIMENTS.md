@@ -89,6 +89,33 @@ holds across **two structurally distinct tasks** — it is not an arithmetic art
 graph the LTT abstention at α=0.1 with reduced calib folds certifies zero coverage — conservative,
 not a failure; ΔAURC, the threshold-free ranking metric, is the generalization evidence.)
 
+## Baseline stress test — geometry vs standard softmax confidence (Phase 4e) ⚠️ **key caveat**
+
+Until now geometry was only compared against scalar **energy**. Adding the standard
+softmax-confidence baselines the plan calls for — **MSP, temperature-scaled MSP, predictive
+entropy** (from the decoder logits) — sharply bounds the claim. Over 5 seeds per task
+(`arith_seeds.toml` / `graph_seeds.toml`):
+
+| task | ΔAURC vs best **energy** (5 seeds) | ΔAURC vs best **overall baseline** (5 seeds) |
+|------|-----------------------------------|----------------------------------------------|
+| arithmetic | **+0.085 ± 0.036** — geometry wins 5/5 | **−0.011 ± 0.006** — geometry wins **0/5** |
+| graph | **+0.111 ± 0.054** — geometry wins 5/5 | **−0.034 ± 0.008** — geometry wins **0/5** |
+
+**Verdict.** The invariant-8 sacred test holds: geometry beats the EBT **scalar energy** on both
+tasks, all seeds. But the *broader* claim does **not** survive — a plain softmax-confidence baseline
+(MSP / entropy / temperature) **ties geometry on arithmetic and beats it on graph** (F2 shows
+geometry, MSP, and entropy overlapping at the bottom, all far below energy). So: **landscape geometry
+beats scalar energy but is not a better nonconformity score than softmax confidence** under the
+current reasoner. This is a real, reported limitation, not a bug.
+
+**Likely cause + the lever.** The reasoner is the Phase-1 **supervised basin-center** model with a
+shallow decoder — its softmax is already informative, leaving little for geometry to add beyond
+energy. The research plan's **Phase-4 IRED annealed-landscape / score-matching training** is the
+intended fix: a genuinely learned, multi-basin landscape should make restart geometry carry signal
+the softmax does not. Re-running this baseline stress test under IRED training is the priority next
+experiment (see SESSION_HANDOFF). MC-dropout / deep ensembles remain deferred (the K-restart
+best-of-N already supplies ensemble-like diversity).
+
 ## Operating regime
 
 Tune each task's difficulty so base accuracy is **70–85%**. Fully-solved tasks saturate AURC and

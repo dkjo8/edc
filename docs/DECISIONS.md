@@ -2,6 +2,21 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-27 — Phase 4e: softmax-confidence baselines + a best-of-all-baselines falsification
+**Decision:** add three standard softmax-confidence nonconformity baselines (`eval/baselines.py`) —
+**MSP**, **temperature-scaled MSP**, and **predictive entropy** — computed from the mean decoder
+logits over the K restarts. Temperature is fit on the **fit** fold only (invariant 7). `evaluate`
+now reports AURC for these alongside the energy baselines, and adds
+`delta_aurc_vs_best_baseline` (geometry vs the strongest of *all* baselines) with a bootstrap CI,
+**in addition to** the sacred `delta_aurc_vs_best_energy` (invariant 8). T1 shows both ΔAURCs per
+task. **Why:** "geometry beats energy" is vulnerable to "energy is a weak baseline"; a paper needs
+geometry to beat a standard softmax confidence too. Mean-logit read-off gives one temperature-
+scalable confidence vector per input; these are cheap (decoder logits already exist). **Deferred:**
+MC-dropout and deep ensembles (need model/dropout changes or multiple trainings; the K-restart
+best-of-N already supplies ensemble-like diversity). **Honesty:** the run records the verdict vs the
+best baseline whatever it is; a tie with MSP would be reported, not hidden. **Reversible?** Yes —
+additive scores + metric fields; aggregation falls back to the energy ΔAURC for pre-4e rows.
+
 ## 2026-07-26 — Phase 4d: second task (graph shortest-path) + task-aware aggregation
 **Decision:** the generalization task is **graph shortest-path length** (`tasks/graph_planning.py`):
 random Erdős–Rényi graph, random `(source, target)`, label = BFS shortest-path length capped at

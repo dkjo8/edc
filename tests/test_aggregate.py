@@ -6,19 +6,24 @@ Offline + CPU-only, on hand-built synthetic ledger rows (no training).
 import aggregate
 
 
-def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic"):
+def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic", baseline_delta=None):
+    m = {
+        "k_restarts": k, "accuracy_id": 0.8, "base_error": 0.2,
+        "best_energy_baseline": "energy_min",
+        "aurc": {"geometry": geo, "energy_min": best},
+        "delta_aurc_vs_best_energy": [delta, lo, delta + 0.02],
+        "ltt": {"coverage": 0.7, "selective_risk": 0.07, "abstain_rate": 0.3},
+    }
+    if baseline_delta is not None:                          # Phase 4e field (older rows omit it)
+        bd, blo = baseline_delta
+        m["best_baseline"] = "temp_msp"
+        m["delta_aurc_vs_best_baseline"] = [bd, blo, bd + 0.02]
     return {
         "run_id": f"{task[:3]}{k}_{seed}", "seed": seed, "split": "selective", "task": task,
         "config_hash": f"{task}h{k}_{seed}", "git_sha": "abc1234",
         "env": {"python": "3.12", "jax": "0.11", "jax_backend": "cpu"},
         "config": {"inference": {"k_restarts": k}},
-        "metrics": {
-            "k_restarts": k, "accuracy_id": 0.8, "base_error": 0.2,
-            "best_energy_baseline": "energy_min",
-            "aurc": {"geometry": geo, "energy_min": best},
-            "delta_aurc_vs_best_energy": [delta, lo, delta + 0.02],
-            "ltt": {"coverage": 0.7, "selective_risk": 0.07, "abstain_rate": 0.3},
-        },
+        "metrics": m,
     }
 
 
@@ -44,6 +49,20 @@ def test_aggregate_cell_verdict():
     assert a16["seeds_ci_excludes_0"] == 5 and a16["geometry_wins_all"] is True
     assert a16["delta_aurc"][0] > a1["delta_aurc"][0]           # lift grows with K
     assert a16["aurc_geometry"][0] < a16["aurc_best_energy"][0]  # geometry lower AURC = better
+
+
+def test_baseline_delta_aggregation_and_fallback():
+    # Rows carrying the Phase-4e field aggregate its own value + seeds-win count.
+    withbl = [_row(12, s, 0.09, 0.07, baseline_delta=(0.05, 0.03)) for s in range(4)]
+    a = aggregate.aggregate_cell(withbl)
+    assert a["delta_aurc_baseline"][0] == 0.05 and a["seeds_ci_excludes_0_baseline"] == 4
+    assert a["delta_aurc"][0] == 0.09                       # energy ΔAURC still separate
+    assert "temp_msp" in a["best_baseline_names"]
+
+    # Older rows without the field fall back to the energy ΔAURC (no crash).
+    old = [_row(12, s, 0.09, 0.07) for s in range(3)]
+    a_old = aggregate.aggregate_cell(old)
+    assert a_old["delta_aurc_baseline"] == a_old["delta_aurc"]
 
 
 def test_task_filter_no_cross_contamination():

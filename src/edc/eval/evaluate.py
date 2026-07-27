@@ -20,7 +20,7 @@ import numpy as np
 from edc.conformal import ltt
 from edc.conformal import nonconformity as nc
 from edc.conformal.selective import ABSTAIN, selective_predict
-from edc.eval import metrics
+from edc.eval import baselines, metrics
 from edc.geometry.features import geometry_features
 from edc.inference import restarts
 from edc.seeding import numpy_rng, root_key
@@ -51,11 +51,14 @@ def _fold(fns, params, cfg, task, split: str, data_stream: int, key) -> dict:
         "names": names,
         "correct": correct,
         "accuracy": float(correct.mean()),
+        "y": np.asarray(batch.y),
         # Raw-energy baselines (EBT-style scalar-energy confidence) — higher energy = less
         # confident = higher nonconformity score. These are the signals geometry must beat.
         "energy_min": terminal.min(axis=1),
         "energy_mean": terminal.mean(axis=1),
         "energy_std": terminal.std(axis=1),
+        # Mean decoder logits over restarts -> softmax-confidence baselines (MSP/entropy/temp).
+        "mean_logits": np.asarray(traj.logits).mean(axis=1),   # (B, C)
         "rho": np.asarray(feats)[:, names.index("basin/rho")],
     }
 
@@ -111,8 +114,9 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
     test = _fold(fns, params, cfg, task, "id", 2, k_test)
     ood = _fold(fns, params, cfg, task, "ood", 3, k_ood) if include_ood else None
 
-    # --- Fit the geometry nonconformity mapper on the FIT fold only (invariant 7) --------------
+    # --- Fit geometry mapper + temperature on the FIT fold only (invariant 7) ------------------
     mapper = nc.fit_mapper(fit["features"], fit["correct"])
+    temperature = baselines.fit_temperature(fit["mean_logits"], fit["y"])
 
     def scores_for(fold: dict) -> dict:
         """All nonconformity scores on a fold. Low = confident; answer iff score <= threshold."""
@@ -122,23 +126,33 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
             "energy_min": fold["energy_min"],
             "energy_mean": fold["energy_mean"],
             "energy_std": fold["energy_std"],
+            # standard softmax-confidence baselines (Phase 4e)
+            "msp": baselines.msp_score(fold["mean_logits"]),
+            "temp_msp": baselines.temp_msp_score(fold["mean_logits"], temperature),
+            "entropy": baselines.entropy_score(fold["mean_logits"]),
         }
 
     test_scores = scores_for(test)
     cal_scores = scores_for(cal)
     correct = test["correct"]
 
-    # --- AURC per score + the falsification ΔAURC(raw energy - geometry) ------------------------
+    # --- AURC per score + falsification ΔAURC vs (a) raw energy [invariant 8] and (b) the best of
+    #     ALL baselines (energy + softmax-confidence), the stronger claim -----------------------
     aurc = {name: metrics.aurc(s, correct) for name, s in test_scores.items()}
     energy_names = ("energy_min", "energy_mean", "energy_std")
-    best_energy = min(energy_names, key=lambda k: aurc[k])  # geometry's hardest baseline
+    baseline_names = (*energy_names, "msp", "temp_msp", "entropy")  # everything geometry must beat
+    best_energy = min(energy_names, key=lambda k: aurc[k])
+    best_baseline = min(baseline_names, key=lambda k: aurc[k])
 
     n_boot = 2000
     d_min, lo_min, hi_min = metrics.paired_bootstrap_delta_aurc(
         test_scores["energy_min"], test_scores["geometry"], correct, n_boot, cfg.run.seed)
     d_best, lo_best, hi_best = metrics.paired_bootstrap_delta_aurc(
         test_scores[best_energy], test_scores["geometry"], correct, n_boot, cfg.run.seed)
+    d_bl, lo_bl, hi_bl = metrics.paired_bootstrap_delta_aurc(
+        test_scores[best_baseline], test_scores["geometry"], correct, n_boot, cfg.run.seed)
     geometry_wins = bool(d_best > 0 and lo_best > 0)
+    geometry_wins_vs_baseline = bool(d_bl > 0 and lo_bl > 0)
 
     # --- LTT abstention guarantee at the configured (alpha, delta) ------------------------------
     alpha, delta = cfg.conformal.alpha, cfg.conformal.delta
@@ -178,10 +192,14 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
         "final_train_loss": float(history["epochs"][-1]["loss"]),
         "feature_names": test["names"],
         "aurc": aurc,
+        "temperature": temperature,
         "best_energy_baseline": best_energy,
+        "best_baseline": best_baseline,
         "delta_aurc_vs_energy_min": [d_min, lo_min, hi_min],
         "delta_aurc_vs_best_energy": [d_best, lo_best, hi_best],
+        "delta_aurc_vs_best_baseline": [d_bl, lo_bl, hi_bl],
         "geometry_wins": geometry_wins,
+        "geometry_wins_vs_baseline": geometry_wins_vs_baseline,
         "risk_coverage": {name: _resample_curve(s, correct) for name, s in test_scores.items()},
         "ltt": ltt_block,
         "coverage_validity": validity,
