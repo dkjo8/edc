@@ -14,10 +14,12 @@ signal, not a promise. Second, the strength of the geometry signal depends on th
 supervised basin-center reasoner, geometry beats scalar energy but only ties/loses to a well-%
 calibrated softmax. That dependence is itself informative---and encouraging---because replacing the
 landscape with a genuinely learned, multi-basin energy (per-class attractors trained by a
-contrastive-plus-stationarity objective, annealed sampling) makes geometry beat softmax confidence
-($4/5$ seeds), confirming that the simple landscape was the limiter, not the geometry idea.
+contrastive-plus-stationarity objective, annealed sampling) makes geometry beat softmax confidence on
+arithmetic ($4/5$ seeds), evidence that the landscape---not the geometry idea---gates the effect. On
+graph, where that learned reasoner is weaker, the same recipe only ties softmax, so we claim the flip
+narrowly: demonstrated on one task, task-dependent, with a small margin.
 
-\paragraph{Future work.} The learned-landscape result is on arithmetic and the margin over softmax is
-small; widening it---larger models and richer landscapes (annealed score matching), the graph and
-further tasks, more seeds---is the immediate next step. Beyond that: scaling to language-scale EBTs
-and richer geometry (full spectra, mode connectivity).
+\paragraph{Future work.} Making the learned-landscape flip robust and general is the immediate next
+step: stronger learned reasoners (especially on graph), richer landscapes (annealed score matching),
+and more seeds to widen the small margin. Beyond that: scaling to language-scale EBTs and richer
+geometry (full spectra, mode connectivity).

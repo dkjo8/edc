@@ -1,0 +1,45 @@
+# Phase 4h: IRED learned-landscape reasoner on graph shortest-path — does the softmax-caveat flip
+# (Phase 4g, arithmetic) generalize to a second task? IRED is a weaker graph reasoner than the
+# basin-center model (ID ~0.58 vs 0.70; still above the 0.42 majority baseline), so this is an
+# honest, harder test.
+[run]
+task = "graph_planning"
+seed = 0
+notes = "IRED learned-landscape reasoner on graph"
+
+[task.graph_planning]
+n_nodes = 7
+ood_n_nodes = 10
+edge_prob = 0.4
+max_len = 4
+
+[model]
+latent_dim = 32
+hidden_dim = 128
+context_dim = 64
+
+[inference]
+k_restarts = 12
+init_scale = 1.0
+sampler = "annealed"
+anneal_levels = 20
+anneal_steps_per_level = 10
+anneal_step_max = 0.5
+anneal_step_min = 0.003
+temperature = 0.01
+
+[train]
+objective = "ired"
+epochs = 100
+n_train = 10000
+ired_ridge = 0.2
+ired_stat_weight = 8.0
+ired_decode_weight = 4.0
+
+[eval]
+n_eval = 800
+
+[conformal]
+alpha = 0.1
+delta = 0.05
+n_calib = 800

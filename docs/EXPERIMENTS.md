@@ -144,20 +144,25 @@ random `z0` by a margin (reachability); the **stationarity** term drives `‖∇
 lacked (low-energy but not stationary, so descent never settled). With annealed descent, ID accuracy
 rises from chance to $0.72$–$0.90$.
 
-**Result (5 seeds, learned IRED landscape; `sweeps/ired_seeds.toml`).**
+**Result (5 seeds/task; `sweeps/ired_seeds.toml`, `sweeps/graph_ired_seeds.toml`).** ΔAURC vs the
+best of all baselines (energy + softmax); "wins" = seeds whose 95% CI clears 0.
 
-| reasoner | ΔAURC vs scalar energy | ΔAURC vs best **softmax** baseline |
-|----------|------------------------|------------------------------------|
-| basin-center (Phase-1) | $+0.085$, geometry wins $5/5$ | $-0.011$, geometry wins **$0/5$** |
-| **IRED (learned)** | $+0.159\pm0.051$, wins $5/5$ | $\mathbf{+0.007\pm0.005}$, wins **$4/5$** |
+| task | reasoner | ΔAURC vs scalar energy | ΔAURC vs best **softmax** baseline |
+|------|----------|------------------------|------------------------------------|
+| arithmetic | basin-center | $+0.085$, wins $5/5$ | $-0.011$, wins **$0/5$** |
+| arithmetic | **IRED (learned)** | $+0.159\pm0.051$, $5/5$ | $\mathbf{+0.007\pm0.005}$, wins **$4/5$** |
+| graph | basin-center | $+0.111$, wins $5/5$ | $-0.034$, wins **$0/5$** |
+| graph | **IRED (learned)** | $+0.064$, $5/5$ | $+0.004\pm0.014$, wins **$1/5$** (1 win, 1 loss, 3 ties) |
 
-Under a genuinely learned multi-basin landscape, **geometry beats the best softmax-confidence
-baseline (MSP / temperature / entropy) on $4/5$ seeds** (only seed~3 ties), where the basin-center
-reasoner lost $0/5$. The margin is small but consistent, and it **flips the Phase-4e caveat**: the
-limiter was the simple landscape, not the geometry idea---exactly the hypothesis. LTT abstention
-remains valid under IRED (e.g. seed~0: $81\%$ coverage at selective risk $0.052\le\alpha$). Default
-`basin_center` is unchanged; this is opt-in and additive. Next: multi-seed IRED on graph, and a
-larger stat-weight / capacity sweep to widen the margin.
+**Verdict — the flip is real but task-dependent.** On **arithmetic**, a genuinely learned multi-basin
+landscape makes geometry beat the best softmax-confidence baseline (MSP/temp/entropy) on $4/5$ seeds,
+reversing the Phase-4e $0/5$ caveat and confirming the hypothesis that the simple landscape (not the
+geometry idea) was the limiter. On **graph**, where the learned reasoner is weaker and
+higher-variance (ID $0.55$–$0.82$), geometry still beats scalar energy $5/5$ but only **ties** softmax
+($1$ win / $1$ loss / $3$ ties). So the flip is demonstrated on arithmetic, not yet on graph — we
+claim it narrowly. LTT abstention stays valid under IRED. Default `basin_center` unchanged; opt-in +
+additive; IRED rows are `objective`-tagged so they never pollute the basin-center T1 (aggregation is
+now objective-aware). Next: a stronger IRED graph reasoner + more seeds to widen the small margin.
 
 **Likely cause of the softmax tie + the lever.** The reasoner is the Phase-1 **supervised
 basin-center** model with a
