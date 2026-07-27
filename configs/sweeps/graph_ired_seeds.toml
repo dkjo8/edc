@@ -1,0 +1,8 @@
+# Phase 4h: 5-seed IRED-on-graph — does geometry beat softmax under a learned landscape on a second
+# task? (On graph the basin-center reasoner lost to softmax 0/5 by a larger margin, so this is the
+# harder generalization test of the Phase-4g flip.)
+[sweep]
+base = "configs/experiments/graph_ired.toml"
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

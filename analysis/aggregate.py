@@ -13,17 +13,25 @@ import numpy as np
 from edc.ledger import read_all
 
 
-def selective_rows(rows: list[dict] | None = None, task: str | None = None) -> list[dict]:
+def objective_of(row: dict) -> str:
+    """Training objective behind a row: ``basin_center`` (default) or ``ired``."""
+    return row["metrics"].get("objective") or row["config"].get("train", {}).get(
+        "objective", "basin_center")
+
+
+def selective_rows(rows: list[dict] | None = None, task: str | None = None,
+                   objective: str | None = None) -> list[dict]:
     """Latest ``split=='selective'`` row per ``(config_hash, seed)`` (cf. latest_per_config).
 
-    ``task`` filters to one reasoning family (``row["task"]``) so multi-task ledgers do not
-    cross-contaminate per-K aggregates.
+    ``task`` filters to one reasoning family and ``objective`` to one reasoner (``basin_center`` vs
+    ``ired``), so multi-task / multi-reasoner ledgers do not cross-contaminate per-K aggregates.
     """
     if rows is None:
         rows = read_all()
     latest: dict[tuple[str, int], dict] = {}
     for r in rows:
-        if r.get("split") == "selective" and (task is None or r.get("task") == task):
+        if (r.get("split") == "selective" and (task is None or r.get("task") == task)
+                and (objective is None or objective_of(r) == objective)):
             latest[(r["config_hash"], r["seed"])] = r  # later rows win
     return list(latest.values())
 
@@ -99,14 +107,16 @@ def aggregate_by_k(rows: list[dict] | None = None, task: str | None = None) -> d
     return {k: aggregate_cell(v) for k, v in by_k(rows, task=task).items()}
 
 
-def headline_cell(rows: list[dict] | None = None, task: str | None = None) -> dict:
-    """Aggregate the headline seed-sweep for a task: the largest single-config seed group.
+def headline_cell(rows: list[dict] | None = None, task: str | None = None,
+                  objective: str = "basin_center") -> dict:
+    """Aggregate the headline seed-sweep for one task + reasoner (largest single-config seed group).
 
-    Prefers rows carrying the Phase-4e baseline field, then picks the ``config_hash`` group with the
-    most seeds — the multi-seed sweep — so T1 is not polluted by mixing fold sizes / configs that
-    happen to share a K value. Falls back to all rows for the task if none carry the field.
+    T1 uses the canonical ``basin_center`` reasoner (pass ``objective="ired"`` to report the learned
+    landscape separately). Prefers rows carrying the Phase-4e baseline field, then picks the config
+    group (K, n_test) with the most seeds — the multi-seed sweep — so the cell is not polluted by
+    mixing fold sizes / reasoners that happen to share a K value.
     """
-    sel = selective_rows(rows, task=task)
+    sel = selective_rows(rows, task=task, objective=objective) or selective_rows(rows, task=task)
     with_bl = [r for r in sel if "delta_aurc_vs_best_baseline" in r["metrics"]]
     pool = with_bl or sel
     # Group by the experiment config *excluding seed* (config_hash bakes in the seed). (K, n_test)

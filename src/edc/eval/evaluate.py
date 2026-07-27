@@ -213,6 +213,8 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
         "n_calib": int(cal["correct"].shape[0]),
         "n_test": int(test["correct"].shape[0]),
         "k_restarts": int(cfg.inference.k_restarts),
+        "objective": getattr(cfg.train, "objective", "basin_center"),
+        "sampler": getattr(cfg.inference, "sampler", "langevin"),
         "accuracy_id": test["accuracy"],
         "base_error": float((~correct).mean()),
         "final_train_loss": float(history["epochs"][-1]["loss"]),

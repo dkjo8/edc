@@ -2,6 +2,17 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-27 — Phase 4h: objective-aware aggregation; the IRED flip is task-dependent
+**Decision:** `evaluate` now records `objective` (basin_center|ired) + `sampler` in its metrics, and
+`analysis/aggregate` is **objective-aware** (`objective_of`, `selective_rows(objective=…)`,
+`headline_cell(objective="basin_center")` by default) so IRED rows never contaminate the canonical
+basin-center T1 (previously the IRED and basin sweeps shared K=12 and T1 picked one by a fragile
+tie-break). **Finding:** the Phase-4g softmax-caveat flip is **task-dependent** — robust on
+arithmetic (geometry beats softmax 4/5 under IRED) but only a tie on graph (1 win/1 loss/3 ties),
+where the learned reasoner is weaker (ID 0.55–0.82). Reported narrowly; the paper/abstract/docs
+tempered accordingly. **Why:** honesty — one task's flip is not a general claim; and the fragile
+tie-break was a latent T1 bug worth fixing. **Reversible?** Yes — `objective` filter is additive.
+
 ## 2026-07-27 — Phase 4g: IRED reasons via contrastive+stationarity (not DSM); flips the 4e caveat
 **Decision:** the working IRED objective is **IREM-style contrastive + stationarity + decode**, not
 denoising score matching. DSM was stuck (score net never fit under the double-grad objective).
