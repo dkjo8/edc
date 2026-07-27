@@ -1,0 +1,48 @@
+# Phase 4g: IRED-style LEARNED-landscape reasoner on arithmetic (now working).
+# Opt-in [train] objective="ired": an input-conditioned multi-basin energy trained by a contrastive
+# + stationarity + decode objective toward a learned per-class latent codebook (no fixed bowl), with
+# an annealed Langevin sampler at inference. Tuned to the 70-85% ID regime. Purpose: re-run the
+# Phase-4e baseline stress test under a genuinely learned landscape — does geometry now beat softmax
+# confidence, not just scalar energy?
+[run]
+task = "arithmetic"
+seed = 0
+notes = "IRED learned-landscape reasoner"
+
+[task.arithmetic]
+modular = false
+n_operands = 6
+ood_n_operands = 6
+max_operand = 7
+ood_max_operand = 9
+
+[model]
+latent_dim = 32
+hidden_dim = 128
+context_dim = 64
+
+[inference]
+k_restarts = 12
+init_scale = 1.0
+sampler = "annealed"        # the learned landscape needs annealed (explore -> settle) Langevin
+anneal_levels = 20
+anneal_steps_per_level = 10
+anneal_step_max = 0.5
+anneal_step_min = 0.003
+temperature = 0.01
+
+[train]
+objective = "ired"
+epochs = 55                 # ~78% ID regime
+n_train = 8000
+ired_ridge = 0.15
+ired_stat_weight = 5.0      # anchor-stationarity: make basins genuine attractors (the key term)
+ired_decode_weight = 2.0
+
+[eval]
+n_eval = 1000               # annealed sampler runs 200 steps/descent -> keep folds modest
+
+[conformal]
+alpha = 0.1
+delta = 0.05
+n_calib = 1000

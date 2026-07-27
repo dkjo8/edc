@@ -63,11 +63,22 @@ the bottom, all far below the energy scores. We therefore state the contribution
 \textbf{inference-time landscape geometry beats the EBT scalar-energy signal, but is not a better
 nonconformity score than a well-calibrated softmax}---under this reasoner. The likely reason is the
 reasoner itself: a supervised basin-center energy with a shallow decoder makes the softmax already
-informative, leaving little for geometry to add beyond energy. A fully-learned, multi-basin
-(IRED-style) landscape is the natural lever to revisit this, and is the priority of future work
-(Sec.~\ref{sec:conclusion}). The distribution-free certificate machinery---selective prediction,
-adaptive halting, and their in-distribution validity and out-of-distribution breakage---holds
-regardless of which score wins.
+informative, leaving little for geometry to add beyond energy. The distribution-free certificate
+machinery---selective prediction, adaptive halting, and their in-distribution validity and
+out-of-distribution breakage---holds regardless of which score wins.
+
+\paragraph{The landscape was the limiter (learned-landscape reasoner).} We test that explanation
+directly by replacing the supervised basin-center energy with a genuinely learned, input-conditioned
+multi-basin landscape---per-class latent anchors trained as attractors by a contrastive-plus-%
+stationarity objective (pushing the correct anchor below competitors and driving
+$\|\nabla_z E(\mu_y)\|\!\to\!0$ so it is a local minimum), with annealed Langevin descent at
+inference. This reasoner reasons (ID $0.72$--$0.90$), and under it geometry \emph{does} beat the best
+softmax-confidence baseline: over $5$ seeds, $\Delta\mathrm{AURC} = +0.007\pm0.005$ against the best
+overall baseline ($4/5$ seeds' CI excluding zero), and $+0.159\pm0.051$ against scalar energy---%
+compared to $-0.011$ ($0/5$) under the basin-center reasoner. The margin over softmax is small but
+consistent, and it flips the caveat: inference-time landscape geometry can beat a well-calibrated
+softmax \emph{when the landscape is genuinely multi-basin}. We report this on arithmetic; widening
+the margin (larger models, graph, more seeds) is ongoing.
 
 \input{tables/T1_main}
 \input{tables/T2b_feature_ablation}

@@ -63,10 +63,21 @@
   energy is from the **non-energy** features; **basin agreement is the dominant driver** (dynamics
   second, esp. graph; curvature/energy minor). Rebuts "it's just energy"; consistent with F5.
 - **Phase 5 (paper draft): ✅** all seven `paper/sections/*.tex` written (intro, background, method,
-  guarantees, experiments, related, conclusion) grounded in the real results incl. the honest
-  softmax caveat; figures F2–F6/S1 and tables T1/T2/T2b/T3 wired in; `paper/main.tex` compiles to a
-  PDF via `tectonic` (`cd paper && tectonic main.tex`). Abstract states the honest scope.
-- **Deferred: stubbed.** IRED landscape training (priority lever, `phase-4g-ired` draft PR), Modal.
+  guarantees, experiments, related, conclusion) grounded in the real results; figures F2–F6/S1 and
+  tables T1/T2/T2b/T3 wired in; `paper/main.tex` compiles via `tectonic` (`cd paper && tectonic
+  main.tex`).
+- **Phase 4g (IRED learned landscape — WORKS, flips the 4e caveat): ✅** opt-in `[train]
+  objective="ired"`: learned per-class anchor codebook + fully-learned multi-basin energy
+  (`mlp_ebm energy_form="learned"`), **contrastive + stationarity + decode** loss
+  (`train/losses.ired_loss_fn`) + opt-in **annealed Langevin** sampler
+  (`optimizer.annealed_langevin`, `[inference] sampler="annealed"`). The stationarity term
+  (`||∇_z E(μ_y)||→0`, weight `ired_stat_weight`) was the key — it makes anchors genuine attractors,
+  which the earlier DSM attempts lacked. **5-seed result:** the IRED reasoner reasons (ID ~0.72–0.90)
+  and, under the learned landscape, **geometry beats softmax confidence on 4/5 seeds** (ΔAURC
+  +0.007±0.005 vs the best baseline, vs 0/5 under basin_center) — confirming the Phase-4e hypothesis
+  that the simple landscape was the limiter. `configs/experiments/arithmetic_ired.toml`,
+  `sweeps/ired_seeds.toml`. Default `basin_center` unchanged (92 tests green).
+- **Deferred: stubbed.** More tasks (E3/E4), Modal, multi-seed IRED on graph, scale-up.
 
 ## What is real vs stub
 

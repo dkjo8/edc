@@ -45,6 +45,14 @@ class InferenceCfg:
     temperature: float = 0.05
     init_scale: float = 1.0
     grad_tol: float = 1e-3
+    # Inference sampler: "langevin" (fixed-step, default) or "annealed" (simulated-annealing
+    # Langevin — a geometric step-size/noise schedule that settles into a mode; needed for the
+    # learned IRED landscape). Total steps = anneal_levels * anneal_steps_per_level.
+    sampler: str = "langevin"
+    anneal_levels: int = 10
+    anneal_steps_per_level: int = 8
+    anneal_step_max: float = 0.2     # largest per-step size (explore)
+    anneal_step_min: float = 0.01    # smallest per-step size (settle into a basin)
 
 
 @dataclass(frozen=True)
@@ -55,6 +63,15 @@ class TrainCfg:
     n_train: int = 4000
     n_neg: int = 4
     neg_noise: float = 0.5
+    # Training objective: "basin_center" (Phase-1 supervised bowl, default) or "ired"
+    # (denoising score matching toward a learned per-class latent codebook -> a genuinely
+    # learned multi-basin landscape; see edc.train.losses.ired_loss_fn).
+    objective: str = "basin_center"
+    ired_noise_min: float = 0.1      # smallest DSM noise scale sigma
+    ired_noise_max: float = 1.5      # largest DSM noise scale sigma (annealing range)
+    ired_ridge: float = 0.05         # ||z||^2 ridge keeping the learned energy bounded
+    ired_decode_weight: float = 1.0  # weight on the anchor/path decode-CE term
+    ired_stat_weight: float = 1.0    # weight on the anchor-stationarity (attractor) term
 
 
 @dataclass(frozen=True)

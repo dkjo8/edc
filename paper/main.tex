@@ -32,12 +32,13 @@ Risk Control). On two structurally distinct reasoning tasks, landscape geometry 
 terminal energy used by Energy-Based Transformers as a nonconformity score (paired-bootstrap
 $\Delta$AURC CI excluding zero, $5/5$ seeds each), the advantage is caused by the restart geometry
 (it grows with the number of restarts; a single descent barely separates) and driven mainly by basin
-agreement, and halting saves ${\sim}58\%$ of inference compute at a guaranteed error budget. We also
-report a limitation squarely: against a standard softmax-confidence baseline (maximum softmax
-probability, temperature scaling, entropy) geometry \emph{ties} on arithmetic and \emph{loses} on
-graph---so the advantage is over the scalar-energy signal specifically. The certificates are valid
-in-distribution and, by design, break under distribution shift, which is the argument for treating an
-abstention as a routing signal in critical systems.
+agreement, and halting saves ${\sim}58\%$ of inference compute at a guaranteed error budget. Against a stronger, standard softmax-confidence baseline (maximum softmax probability, temperature
+scaling, entropy), geometry only \emph{ties} (arithmetic) or \emph{loses} (graph) under a supervised
+basin-center reasoner---but when the reasoner is a genuinely learned, multi-basin landscape,
+geometry \emph{beats} softmax confidence on $4/5$ seeds, indicating that the simple landscape, not
+the geometry idea, was the limiter. The certificates are valid in-distribution and, by design, break
+under distribution shift, which is the argument for treating an abstention as a routing signal in
+critical systems.
 \end{abstract}
 
 \input{sections/introduction}

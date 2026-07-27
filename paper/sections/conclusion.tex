@@ -10,15 +10,14 @@ compute substantially at a guaranteed error budget.
 
 \paragraph{Limitations, honestly.} Two matter. First, the guarantees are marginal under
 exchangeability and provably void under distribution shift; we treat an abstention as a routing
-signal, not a promise. Second, and more consequential: against a standard softmax-confidence baseline
-(MSP, temperature scaling, entropy), geometry only ties (arithmetic) or loses (graph). The advantage
-is over the EBT scalar-energy signal specifically, not over all confidences. We attribute this to the
-reasoner---a supervised basin-center energy with a shallow decoder, whose softmax is already
-informative---rather than to the certificate machinery, which is agnostic to which score is used.
+signal, not a promise. Second, the strength of the geometry signal depends on the landscape: under a
+supervised basin-center reasoner, geometry beats scalar energy but only ties/loses to a well-%
+calibrated softmax. That dependence is itself informative---and encouraging---because replacing the
+landscape with a genuinely learned, multi-basin energy (per-class attractors trained by a
+contrastive-plus-stationarity objective, annealed sampling) makes geometry beat softmax confidence
+($4/5$ seeds), confirming that the simple landscape was the limiter, not the geometry idea.
 
-\paragraph{Future work.} The clear next lever is a fully-learned, multi-basin landscape (IRED-style
-annealed score matching) in place of the basin-center energy: a landscape where restart geometry can
-carry signal a single-point softmax cannot. We scaffolded this direction but did not yet obtain a
-working reasoner under it (the score network did not fit and a fixed-step sampler could not reach the
-correct basin), leaving it as the priority experiment. Beyond that: scaling to language-scale EBTs,
-richer geometry (full spectra, mode connectivity), and further tasks.
+\paragraph{Future work.} The learned-landscape result is on arithmetic and the margin over softmax is
+small; widening it---larger models and richer landscapes (annealed score matching), the graph and
+further tasks, more seeds---is the immediate next step. Beyond that: scaling to language-scale EBTs
+and richer geometry (full spectra, mode connectivity).

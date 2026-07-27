@@ -127,6 +127,38 @@ it nearly doubles arithmetic AURC toward the energy level); descent **dynamics**
 graph); curvature adds little here. This is the mechanism behind the invariant-8 win — and it is
 consistent with F5. (It does not change the 4e caveat: basin/dynamics beat *energy* but not softmax.)
 
+### Phase 4g — IRED learned landscape: it works, and it flips the softmax caveat ✅
+
+The lever from Phase 4e: replace the supervised basin-center bowl with a genuinely learned,
+input-conditioned multi-basin energy (opt-in `[train] objective="ired"`: a learned per-class latent
+**codebook** as attractors, `mlp_ebm energy_form="learned"`), and see whether restart geometry then
+beats softmax confidence, not just scalar energy.
+
+**Getting it to reason.** Two failed attempts first: denoising score matching toward the anchors was
+**stuck** (`dsm ≈ 16` of a trivial ≈ 24, flat across epochs and samplers), and an added **annealed
+Langevin** sampler (`[inference] sampler="annealed"`, a geometric explore→settle schedule) did not
+help on its own. The fix was the objective: an **IREM-style contrastive + stationarity** loss
+(`train/losses.ired_loss_fn`). Contrastive pushes `E(μ_y)` below the wrong-class anchor and below a
+random `z0` by a margin (reachability); the **stationarity** term drives `‖∇_z E(μ_y)‖→0`
+(weight `ired_stat_weight`) so anchors are genuine \emph{local minima}—the piece the DSM attempts
+lacked (low-energy but not stationary, so descent never settled). With annealed descent, ID accuracy
+rises from chance to $0.72$–$0.90$.
+
+**Result (5 seeds, learned IRED landscape; `sweeps/ired_seeds.toml`).**
+
+| reasoner | ΔAURC vs scalar energy | ΔAURC vs best **softmax** baseline |
+|----------|------------------------|------------------------------------|
+| basin-center (Phase-1) | $+0.085$, geometry wins $5/5$ | $-0.011$, geometry wins **$0/5$** |
+| **IRED (learned)** | $+0.159\pm0.051$, wins $5/5$ | $\mathbf{+0.007\pm0.005}$, wins **$4/5$** |
+
+Under a genuinely learned multi-basin landscape, **geometry beats the best softmax-confidence
+baseline (MSP / temperature / entropy) on $4/5$ seeds** (only seed~3 ties), where the basin-center
+reasoner lost $0/5$. The margin is small but consistent, and it **flips the Phase-4e caveat**: the
+limiter was the simple landscape, not the geometry idea---exactly the hypothesis. LTT abstention
+remains valid under IRED (e.g. seed~0: $81\%$ coverage at selective risk $0.052\le\alpha$). Default
+`basin_center` is unchanged; this is opt-in and additive. Next: multi-seed IRED on graph, and a
+larger stat-weight / capacity sweep to widen the margin.
+
 **Likely cause of the softmax tie + the lever.** The reasoner is the Phase-1 **supervised
 basin-center** model with a
 shallow decoder — its softmax is already informative, leaving little for geometry to add beyond
