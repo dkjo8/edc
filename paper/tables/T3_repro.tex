@@ -3,6 +3,7 @@
   \centering
   \caption{Reproducibility appendix. Env: python 3.12.13, jax 0.11.0 (cpu). Every row regenerates from seed + config via \texttt{run\_sweep}.}
   \label{tab:repro}
+  \resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
   \begin{tabular}{lrrll}
     \toprule
     run\_id & seed & $K$ & config hash & git sha \\
@@ -45,5 +46,5 @@
     ff953d4a0e15 & 3 & 16 & ef0196b5978e & 758d5f2 \\
     e14af222ab26 & 4 & 16 & 9c69bc8a7ce8 & 758d5f2 \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}}
 \end{table}

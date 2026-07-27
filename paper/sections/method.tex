@@ -1,5 +1,43 @@
 \section{Method}
-% (a) K-restart Langevin descent over the latent. (b) Geometry features: basin agreement,
-% terminal-energy stats, curvature via HVP (power iteration lambda_max, Hutchinson trace),
-% descent dynamics. (c) Nonconformity mapper fit on a fold disjoint from calibration.
-% (d) CRC for halting (monotone risk); LTT for selective error (non-monotone risk).
+\label{sec:method}
+
+\paragraph{Reasoner and inference.} A problem $x$ is encoded to a context $h_x = f_\phi(x)$; the
+reasoner answers by optimizing a learned energy $E_\theta(h_x, z)$ over a latent $z$ and decoding the
+optimum, $\hat y = g_\psi(z^\star)$. Inference runs $K$ stochastic-restart Langevin descents,
+\[
+  z_{t+1} = z_t - \eta\,\nabla_z E_\theta(h_x, z_t) + \sqrt{2\eta\tau}\,\varepsilon_t,\qquad
+  \varepsilon_t \sim \mathcal N(0, I),\ \tau > 0,
+\]
+from $K$ independent initializations. The temperature $\tau>0$ is essential: with $\tau=0$ all
+restarts collapse into one basin and the basin-agreement signal vanishes. We report the best-of-$N$
+answer (the lowest-terminal-energy restart), matching the EBT selection rule.
+
+\paragraph{Geometry features (the contribution).} From the $K$-restart trajectory we read a
+$14$-dimensional per-input descriptor in four groups. \emph{Basin agreement}: the plurality fraction
+$\rho$ of decoded answers across restarts, their entropy, and the mean pairwise distance between
+restart endpoints. \emph{Terminal-energy statistics}: mean, min, and spread of $E(z^\star)$---these
+are exactly the EBT scalar-energy signal, included as features to beat. \emph{Local curvature at
+$z^\star$}: the top Hessian eigenvalue $\lambda_{\max}$ (sharpness, by power iteration on
+Hessian--vector products) and $\mathrm{tr}(H)$ (a basin-volume proxy, by a Hutchinson estimator), of
+the energy \emph{over the latent}, per input---a different object from the loss-over-weights
+curvature studied in the sharpness/calibration literature. \emph{Descent dynamics}:
+steps-to-convergence, energy-decrease, monotonicity, and terminal gradient norm. All features are
+plain, fixed-shape functions of the trajectory; only the curvature HVPs touch the differentiable
+core.
+
+\paragraph{Nonconformity scores.} A small logistic mapper takes the feature vector to
+$\hat p(\text{correct})$, giving the score $s(x) = 1 - \hat p(\text{correct})$ (low $=$ confident).
+Crucially, the mapper is fit on a data fold \emph{disjoint} from the calibration fold, so
+calibration scores remain exchangeable with test (Sec.~\ref{sec:guarantees}); a hand-defined
+$1-\rho$ fallback keeps validity independent of the learned mapper. Every baseline---raw energy and
+softmax confidence---is conformalized identically, so all comparisons isolate the choice of score.
+
+\paragraph{Two certificates, two tools.} The halting loss $L(\lambda) = \mathbf 1[\text{early answer}
+\ne \text{full-budget answer}]$ (stop when basin agreement crosses $\lambda$) is bounded and monotone
+in a single threshold, so \emph{Conformal Risk Control} picks $\hat\lambda$ with
+$\mathbb E[L(\hat\lambda)] \le \alpha$ in finite samples. The selective risk
+$R_{\mathrm{sel}}(\lambda) = \Pr(\text{error}\mid\text{answered})$ is \emph{non}-monotone, so we use
+\emph{Learn-then-Test}: each $\lambda$ is a hypothesis with a valid Hoeffding--Bentkus $p$-value, and
+FWER control (Bonferroni over a bounded threshold grid) returns the admissible set; we answer iff
+$s(x)\le\hat\lambda$ and otherwise abstain. The guarantees are stated in
+Section~\ref{sec:guarantees}.

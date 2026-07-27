@@ -3,6 +3,7 @@
   \centering
   \caption{Feature-group leave-one-out ablation: test AURC of the geometry mapper refit on subsets of the 14 features (mean$\pm$std over seeds). ``drop\_X`` removes that group; comparing ``drop\_energy`` to ``full`` isolates the non-energy geometry contribution.}
   \label{tab:ablation}
+  \resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
   \begin{tabular}{lcc}
     \toprule
     subset (AURC, lower=better) & arithmetic & graph\_planning \\
@@ -13,5 +14,5 @@
     drop\_curv & $0.063 \pm 0.020$ & $0.160 \pm 0.012$ \\
     drop\_dynamics & $0.064 \pm 0.024$ & $0.187 \pm 0.024$ \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}}
 \end{table}
