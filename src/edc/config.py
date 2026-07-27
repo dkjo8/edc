@@ -55,6 +55,14 @@ class TrainCfg:
     n_train: int = 4000
     n_neg: int = 4
     neg_noise: float = 0.5
+    # Training objective: "basin_center" (Phase-1 supervised bowl, default) or "ired"
+    # (denoising score matching toward a learned per-class latent codebook -> a genuinely
+    # learned multi-basin landscape; see edc.train.losses.ired_loss_fn).
+    objective: str = "basin_center"
+    ired_noise_min: float = 0.1      # smallest DSM noise scale sigma
+    ired_noise_max: float = 1.5      # largest DSM noise scale sigma (annealing range)
+    ired_ridge: float = 0.05         # ||z||^2 ridge keeping the learned energy bounded
+    ired_decode_weight: float = 1.0  # weight on the anchor/path decode-CE term
 
 
 @dataclass(frozen=True)

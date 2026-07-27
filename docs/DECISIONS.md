@@ -2,6 +2,16 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-27 — Phase 4g: IRED training is opt-in and its energy/anchors are additive (WIP)
+**Decision:** the IRED landscape objective is an **opt-in** `[train] objective="ired"` that switches
+`mlp_ebm` to a fully-learned `energy_form="learned"` (no bowl) + a per-class anchor `nn.Embed`, and
+uses `train.losses.ired_loss_fn` (denoising score matching toward anchors + reachability + decode).
+The default stays `basin_center`/`bowl`, so every existing result/test is untouched. It is developed
+on a branch and **not merged** into `main`/v0.0.1. **Why:** DSM/EBM training is high-risk; keeping
+it additive means the release stays clean regardless of outcome, and the honest WIP status (trains
+but does not yet reason under fixed-step Langevin — needs annealed sampling) is recorded rather than
+forced. **Reversible?** Fully — deleting the branch / leaving the objective unused changes nothing.
+
 ## 2026-07-27 — Phase 4f: feature-group leave-one-out ablation (which geometry features drive it)
 **Decision:** `evaluate` computes a `feature_ablation` block — refit the logistic geometry mapper on
 feature subsets (leave-one-group-out and group-only across basin/energy/curvature/dynamics) on the

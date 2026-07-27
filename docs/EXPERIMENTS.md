@@ -127,6 +127,23 @@ it nearly doubles arithmetic AURC toward the energy level); descent **dynamics**
 graph); curvature adds little here. This is the mechanism behind the invariant-8 win — and it is
 consistent with F5. (It does not change the 4e caveat: basin/dynamics beat *energy* but not softmax.)
 
+### Phase 4g (WIP) — IRED landscape training, first attempt
+
+The lever above is now **scaffolded** (opt-in `[train] objective="ired"`): a learned per-class
+latent **codebook** + a fully-learned multi-basin energy (no fixed bowl), trained by **denoising
+score matching** toward the true-class anchor across noise scales, plus a reachability term
+(anchors below random z0) and anchor/basin decode. `basin_center` is unchanged (non-breaking).
+
+**Honest status: does not yet reason.** The objective trains cleanly (anchors decode, reachability
+gap → 0), but DSM stays high and **ID accuracy is ~chance** — descent from z0 under the shared
+**fixed-step Langevin** sampler does not reliably land in the correct basin. This is the classic
+EBM-sampling gap: DSM shapes *local* basins but a fixed-step descent doesn't reach the right one.
+Making it work needs **annealed Langevin sampling** at inference (step size ∝ σ², descending noise
+schedule) and a stronger score network — a real research iteration, tracked as the next step. The
+Phase-4e stress test is therefore **not** re-run under IRED yet (it would be meaningless at chance
+accuracy). Shipped as experimental scaffolding on the `phase-4g-ired` branch; `main`/v0.0.1 stay on
+the working basin-center reasoner.
+
 **Likely cause of the softmax tie + the lever.** The reasoner is the Phase-1 **supervised
 basin-center** model with a
 shallow decoder — its softmax is already informative, leaving little for geometry to add beyond

@@ -41,5 +41,6 @@ inference-time descent** into distribution-free reliability certificates. Read
   does NOT beat softmax confidence — ties arith, loses graph). Key caveat; see EXPERIMENTS.md.
 - Phase 4f feature-group ablation ✅ (A1/T2b; basin agreement is the dominant driver, drop_energy≈full
   so the win is non-energy features — rebuts "it's just energy").
-- Next: IRED landscape training (the priority lever from 4e) · E3/E4 · Modal · Phase 5 paper —
-  stubbed, `NotImplementedError` / Phase-1 placeholder until built.
+- Phase 4g IRED landscape training 🚧 WIP (`phase-4g-ired` branch, opt-in `objective="ired"`; trains
+  but doesn't yet reason — needs annealed Langevin sampling; NOT merged, main/v0.0.1 unaffected).
+- Next: finish IRED (annealed sampling) then re-run 4e stress test · E3/E4 · Modal · Phase 5 paper.

@@ -13,11 +13,15 @@ import optax
 
 from edc.energy import mlp_ebm
 from edc.seeding import fold, numpy_rng, root_key
-from edc.train.losses import loss_fn
+from edc.train.losses import ired_loss_fn, loss_fn
 
 
 def train(cfg, task):
-    """Train on ``task``. Returns ``(params, fns, history)``."""
+    """Train on ``task``. Returns ``(params, fns, history)``.
+
+    ``cfg.train.objective`` selects the objective: ``"basin_center"`` (Phase-1 supervised bowl,
+    default) or ``"ired"`` (denoising score matching over a learned multi-basin landscape).
+    """
     key = root_key(cfg.run.seed)
     key, k_build = jax.random.split(key)
 
@@ -26,7 +30,22 @@ def train(cfg, task):
     opt = optax.adam(cfg.train.lr)
     opt_state = opt.init(params)
 
-    grad_loss = jax.jit(jax.value_and_grad(loss_fn, has_aux=True), static_argnums=(1,))
+    objective = getattr(cfg.train, "objective", "basin_center")
+    if objective == "ired":
+        nmin, nmax = cfg.train.ired_noise_min, cfg.train.ired_noise_max
+        dw = cfg.train.ired_decode_weight
+
+        init_scale = cfg.inference.init_scale
+
+        def _loss(params, model, x, y, key):
+            return ired_loss_fn(params, model, x, y, key, nmin, nmax, dw, init_scale)
+    else:
+        neg_noise = cfg.train.neg_noise
+
+        def _loss(params, model, x, y, key):
+            return loss_fn(params, model, x, y, key, neg_noise)
+
+    grad_loss = jax.jit(jax.value_and_grad(_loss, has_aux=True), static_argnums=(1,))
 
     # One fixed training set (host-side, deterministic).
     rng = numpy_rng(cfg.run.seed, 1)
@@ -43,7 +62,7 @@ def train(cfg, task):
             idx = order[i : i + bs]
             k_step = fold(key, step)
             (loss, metrics), grads = grad_loss(
-                params, model, x_all[idx], y_all[idx], k_step, cfg.train.neg_noise
+                params, model, x_all[idx], y_all[idx], k_step
             )
             updates, opt_state = opt.update(grads, opt_state, params)
             params = optax.apply_updates(params, updates)

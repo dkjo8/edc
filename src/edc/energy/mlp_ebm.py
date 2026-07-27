@@ -47,18 +47,24 @@ class EnergyReasoner(nn.Module):
     hidden_dim: int
     context_dim: int
     n_classes: int
+    energy_form: str = "bowl"   # "bowl" (Phase-1) or "learned" (IRED multi-basin, Phase 4g)
+    ridge: float = 0.05         # ||z||^2 coefficient bounding the learned energy
 
     def setup(self) -> None:
         self.encoder = Encoder(self.context_dim, self.hidden_dim)
         self.center_head = nn.Dense(self.latent_dim)
         self.correction = Correction(self.hidden_dim)
         self.decoder = Decoder(self.n_classes, self.hidden_dim)
+        # Learned per-class latent anchors: the basins DSM training carves (IRED). Present in both
+        # forms so params init identically; only used by the learned energy / ired loss.
+        self.anchors = nn.Embed(self.n_classes, self.latent_dim)
 
     def __call__(self, x: jnp.ndarray, z: jnp.ndarray) -> jnp.ndarray:
         # Init must touch ALL submodules so their params are created.
         h_x = self.encoder(x)
         e = self.energy(h_x, z)
         _ = self.decoder(z)
+        _ = self.anchors(jnp.zeros((1,), dtype=jnp.int32))
         return e
 
     def encode(self, x: jnp.ndarray) -> jnp.ndarray:
@@ -67,7 +73,16 @@ class EnergyReasoner(nn.Module):
     def center(self, h_x: jnp.ndarray) -> jnp.ndarray:
         return self.center_head(h_x)
 
+    def anchors_all(self) -> jnp.ndarray:
+        """``(n_classes, latent_dim)`` learned class anchors (DSM targets)."""
+        return self.anchors(jnp.arange(self.n_classes))
+
     def energy(self, h_x: jnp.ndarray, z: jnp.ndarray) -> jnp.ndarray:
+        if self.energy_form == "learned":
+            # Fully-learned scalar field + a mild ridge so descent stays bounded (no fixed bowl,
+            # so DSM can carve multiple competing basins -> restart geometry can vary per input).
+            corr = self.correction(h_x, z)
+            return corr + 0.5 * self.ridge * jnp.sum(z**2, axis=-1)
         c = self.center_head(h_x)
         bowl = 0.5 * jnp.sum((z - c) ** 2, axis=-1)
         corr = CORRECTION_SCALE * jnp.tanh(self.correction(h_x, z))
@@ -82,11 +97,14 @@ def build(cfg, n_classes: int, feature_dim: int, key) -> tuple[dict, ReasonerFns
 
     ``cfg`` is an ``edc.config.Config``. ``key`` is a JAX PRNG key from ``edc.seeding``.
     """
+    energy_form = "learned" if getattr(cfg.train, "objective", "basin_center") == "ired" else "bowl"
     model = EnergyReasoner(
         latent_dim=cfg.model.latent_dim,
         hidden_dim=cfg.model.hidden_dim,
         context_dim=cfg.model.context_dim,
         n_classes=n_classes,
+        energy_form=energy_form,
+        ridge=getattr(cfg.train, "ired_ridge", 0.05),
     )
     dummy_x = jnp.zeros((1, feature_dim))
     dummy_z = jnp.zeros((1, cfg.model.latent_dim))

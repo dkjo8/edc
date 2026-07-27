@@ -62,7 +62,14 @@
   (5 seeds/task):** `drop_energy` ≈ `full` and both far below raw energy → geometry's win over
   energy is from the **non-energy** features; **basin agreement is the dominant driver** (dynamics
   second, esp. graph; curvature/energy minor). Rebuts "it's just energy"; consistent with F5.
-- **Deferred / Phase 5: stubbed.** IRED landscape training (priority lever, below), Modal, paper.
+- **Phase 4g (IRED landscape training — WIP, `phase-4g-ired` branch, NOT merged): 🚧** opt-in
+  `[train] objective="ired"`: learned per-class anchor codebook + fully-learned multi-basin energy
+  (`mlp_ebm` `energy_form="learned"`), denoising-score-matching loss + reachability + anchor decode
+  (`train/losses.ired_loss_fn`). **Trains cleanly but does NOT yet reason** (ID acc ~chance): the
+  fixed-step Langevin sampler doesn't reach the right basin. **Next iteration:** annealed Langevin
+  sampling at inference (step ∝ σ², descending noise) + stronger score net, then re-run the 4e
+  stress test. `main`/v0.0.1 unaffected (default basin_center unchanged; 89 tests green).
+- **Deferred / Phase 5: stubbed.** Modal, paper.
 
 ## What is real vs stub
 
