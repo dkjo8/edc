@@ -39,6 +39,8 @@ _SCORE_STYLE = {
     "msp": {"color": "#d1495b", "lw": 1.2, "label": "MSP (softmax)"},
     "temp_msp": {"color": "#e8825a", "lw": 1.2, "label": "MSP + temperature"},
     "entropy": {"color": "#8d6e63", "lw": 1.2, "label": "predictive entropy"},
+    "softmax_learned": {"color": "#c94c4c", "lw": 1.6, "label": "softmax (learned)"},
+    "geom_softmax": {"color": "#2a9d8f", "lw": 2.0, "label": "geometry + softmax"},
 }
 
 

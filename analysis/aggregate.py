@@ -72,6 +72,11 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
     dvbl = [m.get("delta_aurc_vs_best_baseline", m["delta_aurc_vs_best_energy"]) for m in ms]
     dbl_mean, dbl_std = _ms([d[0] for d in dvbl])
     bl_ci = sum(1 for d in dvbl if d[1] > 0.0)
+    # Complementarity (Phase 4j): does geometry add over a learned softmax? (pre-4j rows lack it)
+    has_add = all("delta_aurc_geom_adds" in m for m in ms)
+    dadd = [m["delta_aurc_geom_adds"] for m in ms] if has_add else []
+    add_mean, add_std = _ms([d[0] for d in dadd]) if has_add else (float("nan"), float("nan"))
+    add_ci = sum(1 for d in dadd if d[1] > 0.0)
     return {
         "task": rows_for_k[0].get("task"),
         "k_restarts": _k(rows_for_k[0]),
@@ -89,6 +94,9 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
         "geometry_wins_all": bool(ci_excludes_0 == n and delta_mean > 0),
         "delta_aurc_baseline": (dbl_mean, dbl_std),
         "seeds_ci_excludes_0_baseline": bl_ci,
+        "delta_aurc_geom_adds": (add_mean, add_std),
+        "seeds_ci_excludes_0_geom_adds": add_ci,
+        "has_geom_adds": has_add,
         # True only when every row genuinely carried the Phase-4e baseline field (not a fallback).
         "has_baseline": all("delta_aurc_vs_best_baseline" in m for m in ms),
         # Feature-group leave-one-out ablation (Phase 4f), mean/std per subset over seeds.
