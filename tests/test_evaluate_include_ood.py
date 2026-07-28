@@ -35,3 +35,9 @@ def test_include_ood_flag_toggles_ood_metrics():
     fa = m["feature_ablation"]
     assert {"full", "drop_basin", "drop_energy", "drop_curv", "drop_dynamics"} <= set(fa)
     assert all(0.0 <= v <= 1.0 for v in fa.values())
+
+    # Phase 4j complementarity: learned-softmax vs geometry+softmax mappers
+    assert {"softmax_learned", "geom_softmax"} <= set(m["aurc"])
+    da, loa, hia = m["delta_aurc_geom_adds"]
+    assert loa <= da <= hia
+    assert isinstance(m["geometry_adds_over_softmax"], bool)

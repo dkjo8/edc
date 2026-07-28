@@ -87,7 +87,20 @@ a general property of learned landscapes nor an artifact of accuracy: on graph, 
 softmax already captures what the descent geometry would add. We report this narrowly and read it as
 a boundary on when landscape geometry is worth its cost.
 
+\paragraph{Redundancy vs.\ complementarity (Table~\ref{tab:complementarity}).} ``Ties softmax'' is
+ambiguous: geometry could carry signal softmax lacks yet not enough to win alone. We resolve it by
+fitting a nonconformity mapper on $[\text{geometry}\cup\text{softmax}]$ and comparing it to one on
+$[\text{softmax}]$ alone (both on the fit fold); positive $\Delta\mathrm{AURC}$ means geometry adds
+conditional signal. Across all four (task, reasoner) cells, geometry adds over softmax \emph{only}
+where it also wins head-to-head---arithmetic-IRED ($4/5$, $+0.007$). In every other cell, including
+graph-IRED, the combined mapper is no better than softmax alone ($\Delta\mathrm{AURC}\approx+0.001$,
+$0/5$). So the graph tie is \emph{redundancy}, not complementarity: a well-calibrated softmax already
+captures whatever the descent geometry would contribute there. The clean summary is that inference
+geometry always beats the EBT scalar energy, and beats or complements softmax only under a learned
+landscape on arithmetic.
+
 \input{tables/T1_main}
+\input{tables/T4_complementarity}
 \input{tables/T2b_feature_ablation}
 \input{tables/T2_kablation}
 

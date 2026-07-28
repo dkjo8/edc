@@ -6,7 +6,8 @@ Offline + CPU-only, on hand-built synthetic ledger rows (no training).
 import aggregate
 
 
-def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic", baseline_delta=None):
+def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic", baseline_delta=None,
+         geom_adds=None):
     m = {
         "k_restarts": k, "accuracy_id": 0.8, "base_error": 0.2,
         "best_energy_baseline": "energy_min",
@@ -22,6 +23,9 @@ def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic", baseline_de
             "full": geo, "drop_basin": geo + 0.03, "drop_energy": geo + 0.005,
             "drop_curv": geo + 0.001, "drop_dynamics": geo + 0.002,
         }
+    if geom_adds is not None:                               # Phase 4j field
+        ga, glo = geom_adds
+        m["delta_aurc_geom_adds"] = [ga, glo, ga + 0.02]
     return {
         "run_id": f"{task[:3]}{k}_{seed}", "seed": seed, "split": "selective", "task": task,
         "config_hash": f"{task}h{k}_{seed}", "git_sha": "abc1234",
@@ -68,6 +72,20 @@ def test_baseline_delta_aggregation_and_fallback():
     a_old = aggregate.aggregate_cell(old)
     assert a_old["delta_aurc_baseline"] == a_old["delta_aurc"]
     assert a_old["feature_ablation"] == {}                  # absent -> empty, no crash
+    assert a_old["has_geom_adds"] is False                  # Phase 4j field absent -> flagged
+
+
+def test_geom_adds_complementarity_aggregation():
+    # rows carrying the Phase-4j complementarity field aggregate it + count seeds that clear 0.
+    rows = [_row(12, s, 0.09, 0.07, baseline_delta=(0.05, 0.03), geom_adds=(0.02, 0.008))
+            for s in range(5)]
+    a = aggregate.aggregate_cell(rows)
+    assert a["has_geom_adds"] is True
+    assert a["delta_aurc_geom_adds"][0] == 0.02 and a["seeds_ci_excludes_0_geom_adds"] == 5
+    # a tie (CI includes 0) is not counted as geometry adding
+    tie = [_row(12, s, 0.09, 0.07, baseline_delta=(0.05, 0.03), geom_adds=(0.001, -0.004))
+           for s in range(5)]
+    assert aggregate.aggregate_cell(tie)["seeds_ci_excludes_0_geom_adds"] == 0
 
 
 def test_feature_ablation_aggregates():

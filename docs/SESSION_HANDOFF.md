@@ -81,8 +81,15 @@
   descent geometry would add. `configs/experiments/{arithmetic,graph}_ired.toml`,
   `sweeps/{ired,graph_ired}_seeds.toml`. Aggregation is **objective-aware** (`aggregate.objective_of`,
   `headline_cell(objective=…)`) so IRED never pollutes the basin-center T1 (92 tests green).
-- **Open question / next:** characterize *when* descent geometry adds over softmax (task structure ×
-  landscape); richer geometry; more tasks (E3/E4); Modal; scale-up.
+- **Phase 4j (complementarity — is the graph tie redundancy or complementarity?): ✅** `evaluate`
+  fits a learned-softmax mapper and a `[geometry ∪ softmax]` combined mapper (invariant 7) and reports
+  `delta_aurc_geom_adds` (T4). **Answer: redundancy.** Geometry adds conditional signal over softmax
+  ONLY where it wins head-to-head (arithmetic-IRED, 4/5, +0.007); on graph-IRED the combined mapper
+  ≈ softmax alone (0/5, +0.001) — a well-calibrated softmax already captures what descent geometry
+  would add there. `headline_cell` hardened (per-seed timestamp dedup + prefer newest field-carrying
+  cell) so re-runs after config-schema changes don't create duplicate/stale headline cells. 95 tests.
+- **Open question / next:** richer geometry features (full Hessian spectrum, mode connectivity) to
+  test whether MORE landscape signal helps on graph; more tasks (E3/E4); Modal; scale-up.
 
 ## What is real vs stub
 

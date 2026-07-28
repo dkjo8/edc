@@ -12,9 +12,21 @@ from edc.config import REPO_ROOT
 from edc.ledger import read_all
 
 try:  # sibling import when run as a script (analysis/ on sys.path)
-    from aggregate import aggregate_by_k, headline_cell, selective_rows, tasks_present
+    from aggregate import (
+        aggregate_by_k,
+        headline_cell,
+        objective_of,
+        selective_rows,
+        tasks_present,
+    )
 except ImportError:  # pragma: no cover
-    from analysis.aggregate import aggregate_by_k, headline_cell, selective_rows, tasks_present
+    from analysis.aggregate import (
+        aggregate_by_k,
+        headline_cell,
+        objective_of,
+        selective_rows,
+        tasks_present,
+    )
 
 TABLE_DIR = REPO_ROOT / "paper" / "tables"
 
@@ -115,6 +127,35 @@ def _t2b(rows: list[dict]) -> str:
         "tab:ablation", "feature-group leave-one-out")
 
 
+def _t4(rows: list[dict]) -> str:
+    """Complementarity (A1c): does geometry add *conditional* signal over a learned softmax?
+
+    One row per (task, reasoner). ``vs softmax`` is head-to-head (geometry-alone minus the best
+    softmax baseline); ``geom adds`` is a mapper on [softmax] minus a mapper on [geometry+softmax] —
+    positive means geometry is complementary even where it ties head-to-head.
+    """
+    body, all_ids = [], []
+    for task in tasks_present(rows):
+        for o in sorted({objective_of(r) for r in selective_rows(rows, task=task)}):
+            a = headline_cell(rows, task=task, objective=o)
+            if not a.get("has_geom_adds"):
+                continue
+            body.append([
+                _esc(task), _esc(o), _pm(a["delta_aurc_baseline"]), _pm(a["delta_aurc_geom_adds"]),
+                f"{a['seeds_ci_excludes_0_geom_adds']}/{a['n_seeds']}",
+            ])
+            all_ids += a["run_ids"]
+    header = ["task", "reasoner", r"$\Delta$AURC vs softmax", r"$\Delta$AURC geom \emph{adds}",
+              "seeds add"]
+    return _tabular(
+        header, body, "llccc",
+        "Complementarity (mean$\\pm$std over seeds): head-to-head geometry vs the best softmax "
+        "baseline, and whether geometry \\emph{adds} conditional signal on top of a learned "
+        "softmax (a mapper on [geometry $\\cup$ softmax] vs [softmax]). $>0$ with the CI clearing "
+        "0 (``seeds add'') means geometry is complementary, even where it ties head-to-head.",
+        "tab:complementarity", f"run_ids={all_ids}")
+
+
 def _t3(rows: list[dict]) -> str:
     sel = selective_rows(rows)
     env = sel[-1]["env"] if sel else {}
@@ -147,6 +188,9 @@ def main() -> int:
         "T2b_feature_ablation.tex": _t2b(rows),
         "T3_repro.tex": _t3(rows),
     }
+    t4 = _t4(rows)                                  # only when complementarity rows exist
+    if r"\midrule" in t4 and t4.split(r"\midrule")[1].split(r"\bottomrule")[0].strip():
+        outputs["T4_complementarity.tex"] = t4
     for name, tex in outputs.items():
         (TABLE_DIR / name).write_text(tex)
         print(f"[tables] wrote {TABLE_DIR / name}")

@@ -2,6 +2,18 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-28 — Phase 4j: the graph tie is redundancy, not complementarity (combined-mapper test)
+**Finding/decision:** to distinguish redundancy from complementarity we measure whether a mapper on
+`[geometry ∪ softmax]` beats one on `[softmax]` alone (both fit on the fit fold; `evaluate` adds
+`softmax_learned`/`geom_softmax` scores + `delta_aurc_geom_adds`). **Result:** geometry adds only
+where it also wins head-to-head (arithmetic-IRED 4/5); graph-IRED combined ≈ softmax (0/5). So the
+graph tie is genuine redundancy. Also **hardened `aggregate.headline_cell`**: after adding config
+fields the resolved-config hash changes, so a config re-run no longer dedups against the old rows —
+headline now dedups each (K, n_test) group by seed (latest timestamp) and prefers the newest
+field-carrying cell, keeping T1 canonical and the complementarity cells correct. **Why record it:**
+it sharpens the headline claim (geometry is redundant with softmax except arithmetic-IRED) and fixes
+a real re-run aggregation bug. **Reversible?** Additive metric + a more-robust selection rule.
+
 ## 2026-07-27 — Phase 4i: the graph tie is NOT a weak-reasoner artifact (hypothesis refuted)
 **Finding:** we tested whether the graph softmax-tie was just IRED being a weak graph reasoner by
 scaling the model (hidden 256 / latent 48), reaching graph ID ≈ 0.83 (as strong as arithmetic, low

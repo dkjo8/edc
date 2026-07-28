@@ -16,9 +16,11 @@ calibrated softmax. That dependence is itself informative---and encouraging---be
 landscape with a genuinely learned, multi-basin energy (per-class attractors trained by a
 contrastive-plus-stationarity objective, annealed sampling) makes geometry beat softmax confidence on
 arithmetic ($4/5$ seeds). But this does not generalize: on graph, even an equally strong learned
-reasoner (ID $\approx0.83$) leaves geometry only tying softmax ($0/5$)---so the benefit of landscape
-geometry over a well-calibrated softmax is task-dependent, not a general property of learned
-landscapes nor an artifact of accuracy. We report this boundary plainly.
+reasoner (ID $\approx0.83$) leaves geometry only tying softmax ($0/5$), and a combined
+$[\text{geometry}\cup\text{softmax}]$ mapper is no better than softmax alone---so on graph geometry
+is genuinely \emph{redundant} with a well-calibrated softmax, not merely a complementary signal that
+fails to win. The benefit of landscape geometry over softmax is thus task-dependent, not a general
+property of learned landscapes nor an artifact of accuracy. We report this boundary plainly.
 
 \paragraph{Future work.} Characterizing \emph{when} descent geometry adds over softmax---which task
 structures and landscapes---is the interesting open question raised by the arithmetic/graph contrast.

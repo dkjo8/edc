@@ -72,6 +72,11 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
     dvbl = [m.get("delta_aurc_vs_best_baseline", m["delta_aurc_vs_best_energy"]) for m in ms]
     dbl_mean, dbl_std = _ms([d[0] for d in dvbl])
     bl_ci = sum(1 for d in dvbl if d[1] > 0.0)
+    # Complementarity (Phase 4j): does geometry add over a learned softmax? (pre-4j rows lack it)
+    has_add = all("delta_aurc_geom_adds" in m for m in ms)
+    dadd = [m["delta_aurc_geom_adds"] for m in ms] if has_add else []
+    add_mean, add_std = _ms([d[0] for d in dadd]) if has_add else (float("nan"), float("nan"))
+    add_ci = sum(1 for d in dadd if d[1] > 0.0)
     return {
         "task": rows_for_k[0].get("task"),
         "k_restarts": _k(rows_for_k[0]),
@@ -89,6 +94,9 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
         "geometry_wins_all": bool(ci_excludes_0 == n and delta_mean > 0),
         "delta_aurc_baseline": (dbl_mean, dbl_std),
         "seeds_ci_excludes_0_baseline": bl_ci,
+        "delta_aurc_geom_adds": (add_mean, add_std),
+        "seeds_ci_excludes_0_geom_adds": add_ci,
+        "has_geom_adds": has_add,
         # True only when every row genuinely carried the Phase-4e baseline field (not a fallback).
         "has_baseline": all("delta_aurc_vs_best_baseline" in m for m in ms),
         # Feature-group leave-one-out ablation (Phase 4f), mean/std per subset over seeds.
@@ -119,10 +127,25 @@ def headline_cell(rows: list[dict] | None = None, task: str | None = None,
     sel = selective_rows(rows, task=task, objective=objective) or selective_rows(rows, task=task)
     with_bl = [r for r in sel if "delta_aurc_vs_best_baseline" in r["metrics"]]
     pool = with_bl or sel
-    # Group by the experiment config *excluding seed* (config_hash bakes in the seed). (K, n_test)
-    # separates a seed-sweep (many seeds, one fold size) from one-off full-fold runs at the same K.
+    # Group by the experiment config *excluding seed* — (K, n_test) separates a seed-sweep (many
+    # seeds, one fold size) from one-off full-fold runs at the same K.
     groups: dict[tuple, list[dict]] = {}
     for r in pool:
-        m = r["metrics"]
-        groups.setdefault((_k(r), m.get("n_test")), []).append(r)
-    return aggregate_cell(max(groups.values(), key=len))
+        groups.setdefault((_k(r), r["metrics"].get("n_test")), []).append(r)
+
+    def _dedup_by_seed(group: list[dict]) -> list[dict]:
+        # A config re-run after new config fields were added gets a fresh config_hash, so old + new
+        # rows for one seed both survive `selective_rows`; keep the latest per seed by timestamp.
+        by_seed: dict[int, dict] = {}
+        for r in sorted(group, key=lambda r: r.get("timestamp", "")):
+            by_seed[r["seed"]] = r
+        return list(by_seed.values())
+
+    cells = [_dedup_by_seed(g) for g in groups.values()]
+    # Prefer a cell whose rows carry the newest complementarity metric, then more seeds, then most
+    # recent — so the headline is the latest full seed-sweep, not a stale or partial one.
+    def _key(cell: list[dict]) -> tuple:
+        has_add = all("delta_aurc_geom_adds" in r["metrics"] for r in cell)
+        return (has_add, len(cell), max(r.get("timestamp", "") for r in cell))
+
+    return aggregate_cell(max(cells, key=_key))

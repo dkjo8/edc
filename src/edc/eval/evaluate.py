@@ -144,6 +144,22 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
     mapper = nc.fit_mapper(fit["features"], fit["correct"])
     temperature = baselines.fit_temperature(fit["mean_logits"], fit["y"])
 
+    def _softmax_feats(fold: dict) -> np.ndarray:
+        """(B, 3) softmax-confidence features: MSP, temperature-scaled MSP, predictive entropy."""
+        ml = fold["mean_logits"]
+        return np.column_stack([baselines.msp_score(ml),
+                                baselines.temp_msp_score(ml, temperature),
+                                baselines.entropy_score(ml)])
+
+    def _combined_feats(fold: dict) -> np.ndarray:
+        return np.hstack([fold["features"], _softmax_feats(fold)])
+
+    # Complementarity mappers (Phase 4j): a learned softmax model, and geometry stacked on top.
+    # Both fit on the FIT fold (invariant 7); comparing them isolates the *conditional* value of
+    # geometry over softmax, which head-to-head geometry-vs-softmax cannot.
+    softmax_mapper = nc.fit_mapper(_softmax_feats(fit), fit["correct"])
+    combined_mapper = nc.fit_mapper(_combined_feats(fit), fit["correct"])
+
     def scores_for(fold: dict) -> dict:
         """All nonconformity scores on a fold. Low = confident; answer iff score <= threshold."""
         return {
@@ -156,6 +172,9 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
             "msp": baselines.msp_score(fold["mean_logits"]),
             "temp_msp": baselines.temp_msp_score(fold["mean_logits"], temperature),
             "entropy": baselines.entropy_score(fold["mean_logits"]),
+            # complementarity (Phase 4j): learned softmax alone vs geometry+softmax combined
+            "softmax_learned": nc.score(softmax_mapper, _softmax_feats(fold)),
+            "geom_softmax": nc.score(combined_mapper, _combined_feats(fold)),
         }
 
     test_scores = scores_for(test)
@@ -179,6 +198,12 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
         test_scores[best_baseline], test_scores["geometry"], correct, n_boot, cfg.run.seed)
     geometry_wins = bool(d_best > 0 and lo_best > 0)
     geometry_wins_vs_baseline = bool(d_bl > 0 and lo_bl > 0)
+
+    # Complementarity (Phase 4j): does geometry add signal ON TOP of a learned softmax? Compare a
+    # mapper on [geometry ∪ softmax] to one on [softmax] alone. Positive with CI>0 => complementary.
+    d_add, lo_add, hi_add = metrics.paired_bootstrap_delta_aurc(
+        test_scores["softmax_learned"], test_scores["geom_softmax"], correct, n_boot, cfg.run.seed)
+    geometry_adds_over_softmax = bool(d_add > 0 and lo_add > 0)
 
     # --- LTT abstention guarantee at the configured (alpha, delta) ------------------------------
     alpha, delta = cfg.conformal.alpha, cfg.conformal.delta
@@ -226,8 +251,10 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
         "delta_aurc_vs_energy_min": [d_min, lo_min, hi_min],
         "delta_aurc_vs_best_energy": [d_best, lo_best, hi_best],
         "delta_aurc_vs_best_baseline": [d_bl, lo_bl, hi_bl],
+        "delta_aurc_geom_adds": [d_add, lo_add, hi_add],
         "geometry_wins": geometry_wins,
         "geometry_wins_vs_baseline": geometry_wins_vs_baseline,
+        "geometry_adds_over_softmax": geometry_adds_over_softmax,
         "risk_coverage": {name: _resample_curve(s, correct) for name, s in test_scores.items()},
         "ltt": ltt_block,
         "coverage_validity": validity,
