@@ -127,10 +127,25 @@ def headline_cell(rows: list[dict] | None = None, task: str | None = None,
     sel = selective_rows(rows, task=task, objective=objective) or selective_rows(rows, task=task)
     with_bl = [r for r in sel if "delta_aurc_vs_best_baseline" in r["metrics"]]
     pool = with_bl or sel
-    # Group by the experiment config *excluding seed* (config_hash bakes in the seed). (K, n_test)
-    # separates a seed-sweep (many seeds, one fold size) from one-off full-fold runs at the same K.
+    # Group by the experiment config *excluding seed* — (K, n_test) separates a seed-sweep (many
+    # seeds, one fold size) from one-off full-fold runs at the same K.
     groups: dict[tuple, list[dict]] = {}
     for r in pool:
-        m = r["metrics"]
-        groups.setdefault((_k(r), m.get("n_test")), []).append(r)
-    return aggregate_cell(max(groups.values(), key=len))
+        groups.setdefault((_k(r), r["metrics"].get("n_test")), []).append(r)
+
+    def _dedup_by_seed(group: list[dict]) -> list[dict]:
+        # A config re-run after new config fields were added gets a fresh config_hash, so old + new
+        # rows for one seed both survive `selective_rows`; keep the latest per seed by timestamp.
+        by_seed: dict[int, dict] = {}
+        for r in sorted(group, key=lambda r: r.get("timestamp", "")):
+            by_seed[r["seed"]] = r
+        return list(by_seed.values())
+
+    cells = [_dedup_by_seed(g) for g in groups.values()]
+    # Prefer a cell whose rows carry the newest complementarity metric, then more seeds, then most
+    # recent — so the headline is the latest full seed-sweep, not a stale or partial one.
+    def _key(cell: list[dict]) -> tuple:
+        has_add = all("delta_aurc_geom_adds" in r["metrics"] for r in cell)
+        return (has_add, len(cell), max(r.get("timestamp", "") for r in cell))
+
+    return aggregate_cell(max(cells, key=_key))

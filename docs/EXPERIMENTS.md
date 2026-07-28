@@ -166,6 +166,29 @@ learned landscapes nor merely a function of accuracy: on graph, softmax confiden
 what the descent geometry would add. Honest and reported narrowly. LTT abstention stays valid under
 IRED; default `basin_center` unchanged; aggregation is objective-aware so IRED never pollutes T1.
 
+### Complementarity — is the graph tie redundancy or complementarity? (Phase 4j → T4)
+
+"Ties softmax head-to-head" is ambiguous: geometry could be **redundant** with softmax, or
+**complementary** (carrying signal softmax lacks, just not enough to win alone). To decide, we fit a
+mapper on `[geometry ∪ softmax]` and compare it to a mapper on `[softmax]` alone (both on the fit
+fold); positive `ΔAURC(softmax − geom+softmax)` with the CI clearing 0 means geometry adds
+conditional signal. Over 5 seeds per (task, reasoner):
+
+| task | reasoner | ΔAURC geom \emph{vs} softmax (head-to-head) | ΔAURC geom \emph{adds} over softmax |
+|------|----------|--------------------------------------------|-------------------------------------|
+| arithmetic | basin-center | $-0.011$ ($0/5$) | $+0.001$ ($0/5$) |
+| arithmetic | **IRED** | $+0.007$ ($4/5$) | $\mathbf{+0.007}$ (**$4/5$ add**) |
+| graph | basin-center | $-0.034$ ($0/5$) | $-0.006$ ($0/5$) |
+| graph | **IRED** | $+0.001$ ($0/5$, ties) | $+0.001$ (**$0/5$ add**) |
+
+**Verdict — the graph tie is redundancy, not complementarity.** Geometry adds conditional signal
+over softmax **only where it also wins head-to-head** (arithmetic-IRED, $4/5$). Everywhere else,
+including the crux graph-IRED cell, `[geometry+softmax]` is no better than `[softmax]` alone
+(ΔAURC $\approx +0.001$, $0/5$) — a well-calibrated softmax already captures whatever descent
+geometry would contribute. So landscape geometry is a genuinely useful reliability signal that (i)
+always beats the EBT scalar energy and (ii) beats/adds-to softmax **only** under a learned landscape
+on arithmetic; it is redundant with softmax on graph.
+
 **Likely cause of the softmax tie + the lever.** The reasoner is the Phase-1 **supervised
 basin-center** model with a
 shallow decoder — its softmax is already informative, leaving little for geometry to add beyond

@@ -48,5 +48,7 @@ inference-time descent** into distribution-free reliability certificates. Read
   (flips the 4e caveat) but **ties on graph — even with a strong ID~0.83 reasoner (0/5)**, so the
   flip is **genuinely task-dependent, not a reasoner-quality artifact** (I tested that). Aggregation
   is objective-aware so IRED never pollutes the basin-center T1.
-- Next (open question): characterize *when* descent geometry adds over softmax · richer geometry ·
-  E3/E4 · Modal · scale-up.
+- Phase 4j complementarity ✅ (T4): geometry adds *conditional* signal over softmax ONLY where it
+  wins head-to-head (arithmetic-IRED 4/5); on graph-IRED the combined [geom+softmax] mapper ≈ softmax
+  (0/5) — the graph tie is **redundancy, not complementarity**.
+- Next: richer geometry (full spectrum / mode connectivity) · E3/E4 · Modal · scale-up.
