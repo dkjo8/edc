@@ -77,6 +77,9 @@ class TrainCfg:
 @dataclass(frozen=True)
 class EvalCfg:
     n_eval: int = 1000
+    # Phase 4k: opt-in richer geometry (full Hessian spectrum + mode-connectivity barriers)
+    # appended after the base 14 features. Default False keeps the canonical 14-feature vector.
+    richer_geometry: bool = False
 
 
 @dataclass(frozen=True)

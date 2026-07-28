@@ -79,3 +79,36 @@ def batched_curvature(energy, params, contexts, zs, key, iters: int = 12, n_prob
                 hutchinson_trace(f, z_row, k_tr, n_probes=n_probes))
 
     return jax.vmap(one)(contexts, zs, keys)
+
+
+def batched_spectrum(energy, params, contexts, zs):
+    """Per-particle **full** Hessian spectrum for a flat batch of ``N`` particles (Phase 4k).
+
+    The latent Hessian is ``d x d`` with ``d`` small, so we materialise it exactly with
+    ``jax.hessian`` and take its eigenvalues rather than iterate — the richer-geometry
+    counterpart to ``batched_curvature``'s power-iteration ``lambda_max``. Same ``B*K`` particle
+    layout (``contexts`` ``(N, dc)``, ``zs`` ``(N, d)``). Returns eigenvalues ``(N, d)`` ascending.
+    This stays in the JAX core (invariant 1); the plain-NumPy assembler summarises it.
+    """
+    def one(h_row, z_row):
+        f = energy_at(energy, params, h_row)
+        return jnp.linalg.eigvalsh(jax.hessian(f)(z_row))       # (d,) ascending
+
+    return jax.vmap(one)(contexts, zs)
+
+
+def batched_path_energy(energy, params, contexts, z_a, z_b, n_points: int = 8):
+    """Energy along the straight-line path ``z(t) = (1-t) z_a + t z_b`` for ``N`` particle pairs.
+
+    Used by the mode-connectivity features (Phase 4k) to measure the energy barrier between two
+    restart endpoints. ``contexts`` ``(N, dc)`` is the shared per-input context tiled to match the
+    ``N`` pairs; ``z_a``/``z_b`` are ``(N, d)``. Returns ``(N, n_points)`` energies including both
+    endpoints (``t=0`` and ``t=1``). JAX core (invariant 1); the assembler derives the barrier.
+    """
+    ts = jnp.linspace(0.0, 1.0, n_points)
+
+    def one(h_row, za, zb):
+        f = energy_at(energy, params, h_row)
+        return jax.vmap(lambda t: f((1.0 - t) * za + t * zb))(ts)   # (n_points,)
+
+    return jax.vmap(one)(contexts, z_a, z_b)

@@ -7,7 +7,7 @@ import aggregate
 
 
 def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic", baseline_delta=None,
-         geom_adds=None):
+         geom_adds=None, feature_set=None):
     m = {
         "k_restarts": k, "accuracy_id": 0.8, "base_error": 0.2,
         "best_energy_baseline": "energy_min",
@@ -26,9 +26,13 @@ def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic", baseline_de
     if geom_adds is not None:                               # Phase 4j field
         ga, glo = geom_adds
         m["delta_aurc_geom_adds"] = [ga, glo, ga + 0.02]
+    fs_tag = ""
+    if feature_set is not None:                             # Phase 4k field (older rows omit it)
+        m["feature_set"] = feature_set
+        fs_tag = f"_{feature_set}"
     return {
-        "run_id": f"{task[:3]}{k}_{seed}", "seed": seed, "split": "selective", "task": task,
-        "config_hash": f"{task}h{k}_{seed}", "git_sha": "abc1234",
+        "run_id": f"{task[:3]}{k}_{seed}{fs_tag}", "seed": seed, "split": "selective", "task": task,
+        "config_hash": f"{task}h{k}_{seed}{fs_tag}", "git_sha": "abc1234",
         "env": {"python": "3.12", "jax": "0.11", "jax_backend": "cpu"},
         "config": {"inference": {"k_restarts": k}},
         "metrics": m,
@@ -86,6 +90,30 @@ def test_geom_adds_complementarity_aggregation():
     tie = [_row(12, s, 0.09, 0.07, baseline_delta=(0.05, 0.03), geom_adds=(0.001, -0.004))
            for s in range(5)]
     assert aggregate.aggregate_cell(tie)["seeds_ci_excludes_0_geom_adds"] == 0
+
+
+def test_feature_set_filter_and_fallback():
+    # Phase 4k: base and richer rows for the same task/K/seed must not collide, and headline_cell
+    # must select the requested feature set.
+    base = [_row(12, s, 0.09, 0.07, baseline_delta=(0.02, 0.00), geom_adds=(0.001, -0.004),
+                 feature_set="base") for s in range(5)]
+    richer = [_row(12, s, 0.10, 0.08, baseline_delta=(0.05, 0.03), geom_adds=(0.03, 0.01),
+                   feature_set="richer") for s in range(5)]
+    rows = base + richer
+
+    assert aggregate.feature_set_of(base[0]) == "base"
+    assert aggregate.feature_set_of(richer[0]) == "richer"
+    # a pre-4k row (no field, no config flag) reads as base
+    assert aggregate.feature_set_of(_row(12, 0, 0.09, 0.07)) == "base"
+
+    assert len(aggregate.selective_rows(rows, feature_set="richer")) == 5
+    assert len(aggregate.selective_rows(rows, feature_set="base")) == 5
+
+    hb = aggregate.headline_cell(rows, objective="basin_center", feature_set="base")
+    hr = aggregate.headline_cell(rows, objective="basin_center", feature_set="richer")
+    assert hb["seeds_ci_excludes_0_geom_adds"] == 0        # base: geometry adds nothing
+    assert hr["seeds_ci_excludes_0_geom_adds"] == 5        # richer: geometry adds on every seed
+    assert hr["delta_aurc_geom_adds"][0] > hb["delta_aurc_geom_adds"][0]
 
 
 def test_feature_ablation_aggregates():

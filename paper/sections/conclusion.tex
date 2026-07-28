@@ -22,7 +22,12 @@ is genuinely \emph{redundant} with a well-calibrated softmax, not merely a compl
 fails to win. The benefit of landscape geometry over softmax is thus task-dependent, not a general
 property of learned landscapes nor an artifact of accuracy. We report this boundary plainly.
 
+We also asked whether the graph redundancy was merely an artifact of thin curvature features
+($\lambda_{\max}$ and trace only): adding the full Hessian spectrum and mode-connectivity barriers
+leaves the conditional signal over softmax at $-0.002$ ($0/5$) on graph-IRED, so the redundancy is a
+property of the task, not of the feature set.
+
 \paragraph{Future work.} Characterizing \emph{when} descent geometry adds over softmax---which task
-structures and landscapes---is the interesting open question raised by the arithmetic/graph contrast.
-Beyond that: richer geometry (full spectra, mode connectivity), scaling to language-scale EBTs, and
-more seeds/tasks.
+structures and landscapes---is the interesting open question raised by the arithmetic/graph contrast;
+having ruled out feature poverty as the explanation, a third and fourth reasoning family is the
+natural next probe. Beyond that: scaling to language-scale EBTs, and more seeds/tasks.

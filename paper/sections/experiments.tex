@@ -99,8 +99,22 @@ captures whatever the descent geometry would contribute there. The clean summary
 geometry always beats the EBT scalar energy, and beats or complements softmax only under a learned
 landscape on arithmetic.
 
+\paragraph{Richer geometry: task property, not thin features (Table~\ref{tab:richer}).} The
+redundancy verdict could be an artifact of an impoverished curvature description---our base features
+summarise the latent Hessian only by $\lambda_{\max}$ and $\mathrm{tr}(H)$. We test this by adding two
+richer feature groups and re-running the complementarity analysis: the \emph{full} Hessian spectrum
+(smallest eigenvalue, negative-eigenvalue fraction, effective rank, log-determinant; the exact
+$d\times d$ eigendecomposition, since $d$ is small) and \emph{mode connectivity} (energy barriers
+along the path between restart basins). Across all four cells the richer geometry changes nothing: on
+the crux graph-IRED cell the conditional signal over softmax stays at $-0.002$ ($0/5$); it is a wash
+where geometry already wins (arithmetic-IRED, $+0.007$, $4/5$, unchanged) and slightly \emph{worse} on
+the fixed-bowl basin-center landscapes, where extra features only add noise. So more landscape signal
+does not help on graph---the graph redundancy is a property of the task, not of thin features, and a
+well-calibrated softmax already captures what even the richest descent geometry would add.
+
 \input{tables/T1_main}
 \input{tables/T4_complementarity}
+\input{tables/T5_richer_geometry}
 \input{tables/T2b_feature_ablation}
 \input{tables/T2_kablation}
 

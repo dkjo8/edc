@@ -19,19 +19,30 @@ def objective_of(row: dict) -> str:
         "objective", "basin_center")
 
 
+def feature_set_of(row: dict) -> str:
+    """Geometry feature set behind a row: ``base`` (14 features) or ``richer`` (Phase 4k).
+
+    Pre-4k rows lack the field and never enabled richer geometry, so they read as ``base``.
+    """
+    return row["metrics"].get("feature_set") or (
+        "richer" if row["config"].get("eval", {}).get("richer_geometry") else "base")
+
+
 def selective_rows(rows: list[dict] | None = None, task: str | None = None,
-                   objective: str | None = None) -> list[dict]:
+                   objective: str | None = None, feature_set: str | None = None) -> list[dict]:
     """Latest ``split=='selective'`` row per ``(config_hash, seed)`` (cf. latest_per_config).
 
-    ``task`` filters to one reasoning family and ``objective`` to one reasoner (``basin_center`` vs
-    ``ired``), so multi-task / multi-reasoner ledgers do not cross-contaminate per-K aggregates.
+    ``task`` filters to one reasoning family, ``objective`` to one reasoner (``basin_center`` vs
+    ``ired``), and ``feature_set`` to one geometry set (``base`` vs ``richer``), so multi-task /
+    multi-reasoner / multi-feature-set ledgers do not cross-contaminate per-K aggregates.
     """
     if rows is None:
         rows = read_all()
     latest: dict[tuple[str, int], dict] = {}
     for r in rows:
         if (r.get("split") == "selective" and (task is None or r.get("task") == task)
-                and (objective is None or objective_of(r) == objective)):
+                and (objective is None or objective_of(r) == objective)
+                and (feature_set is None or feature_set_of(r) == feature_set)):
             latest[(r["config_hash"], r["seed"])] = r  # later rows win
     return list(latest.values())
 
@@ -46,10 +57,15 @@ def _k(row: dict) -> int:
     return int(m.get("k_restarts", row["config"]["inference"]["k_restarts"]))
 
 
-def by_k(rows: list[dict] | None = None, task: str | None = None) -> dict[int, list[dict]]:
-    """Group selective rows by ``k_restarts`` (ascending), optionally filtered to one ``task``."""
+def by_k(rows: list[dict] | None = None, task: str | None = None,
+         feature_set: str | None = "base") -> dict[int, list[dict]]:
+    """Group selective rows by ``k_restarts`` (ascending), optionally filtered to one ``task``.
+
+    Defaults to the canonical ``base`` feature set so the K-ablation is never contaminated by
+    Phase-4k ``richer`` rows (which share K with their base counterparts).
+    """
     out: dict[int, list[dict]] = {}
-    for r in selective_rows(rows, task=task):
+    for r in selective_rows(rows, task=task, feature_set=feature_set):
         out.setdefault(_k(r), []).append(r)
     return dict(sorted(out.items()))
 
@@ -100,9 +116,12 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
         # True only when every row genuinely carried the Phase-4e baseline field (not a fallback).
         "has_baseline": all("delta_aurc_vs_best_baseline" in m for m in ms),
         # Feature-group leave-one-out ablation (Phase 4f), mean/std per subset over seeds.
+        # Aggregate only the ablation subsets present in *every* row (base and richer rows carry
+        # different group sets), so a heterogeneous cell can never KeyError.
         "feature_ablation": (
             {k: _ms([m["feature_ablation"][k] for m in ms])
-             for k in ms[0]["feature_ablation"]}
+             for k in ms[0]["feature_ablation"]
+             if all(k in m["feature_ablation"] for m in ms)}
             if all("feature_ablation" in m for m in ms) else {}),
         "ltt_coverage": _ms([m["ltt"]["coverage"] for m in ms]),
         "ltt_selective_risk": _ms([m["ltt"]["selective_risk"] for m in ms]),
@@ -110,21 +129,25 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
     }
 
 
-def aggregate_by_k(rows: list[dict] | None = None, task: str | None = None) -> dict[int, dict]:
-    """``{K: aggregate_cell(...)}`` for every K present (optionally filtered to one ``task``)."""
-    return {k: aggregate_cell(v) for k, v in by_k(rows, task=task).items()}
+def aggregate_by_k(rows: list[dict] | None = None, task: str | None = None,
+                   feature_set: str | None = "base") -> dict[int, dict]:
+    """``{K: aggregate_cell(...)}`` per K present (filtered to a ``task`` / ``feature_set``)."""
+    return {k: aggregate_cell(v) for k, v in by_k(rows, task=task, feature_set=feature_set).items()}
 
 
 def headline_cell(rows: list[dict] | None = None, task: str | None = None,
-                  objective: str = "basin_center") -> dict:
+                  objective: str = "basin_center", feature_set: str | None = "base") -> dict:
     """Aggregate the headline seed-sweep for one task + reasoner (largest single-config seed group).
 
     T1 uses the canonical ``basin_center`` reasoner (pass ``objective="ired"`` to report the learned
-    landscape separately). Prefers rows carrying the Phase-4e baseline field, then picks the config
-    group (K, n_test) with the most seeds — the multi-seed sweep — so the cell is not polluted by
-    mixing fold sizes / reasoners that happen to share a K value.
+    landscape separately) and the canonical ``base`` feature set (pass ``feature_set="richer"`` for
+    the Phase-4k richer-geometry cells) — so richer rows never pollute the base headline. Prefers
+    rows carrying the Phase-4e baseline field, then picks the config group (K, n_test) with the most
+    seeds — the multi-seed sweep — so the cell is not polluted by mixing fold sizes / reasoners that
+    happen to share a K value.
     """
-    sel = selective_rows(rows, task=task, objective=objective) or selective_rows(rows, task=task)
+    sel = (selective_rows(rows, task=task, objective=objective, feature_set=feature_set)
+           or selective_rows(rows, task=task, feature_set=feature_set))
     with_bl = [r for r in sel if "delta_aurc_vs_best_baseline" in r["metrics"]]
     pool = with_bl or sel
     # Group by the experiment config *excluding seed* — (K, n_test) separates a seed-sweep (many

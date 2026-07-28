@@ -12,6 +12,11 @@ from pathlib import Path
 from edc import plotting
 from edc.ledger import read_all
 
+try:  # sibling import when run as a script (analysis/ on sys.path)
+    from aggregate import feature_set_of
+except ImportError:  # pragma: no cover
+    from analysis.aggregate import feature_set_of
+
 FIG_DIR = Path(__file__).resolve().parent / "figures"
 
 # (filename, plotting fn). F1 (schematic) is TikZ; F4/F6 (halting, OOD stress) are Phase 4/5.
@@ -26,8 +31,10 @@ _FIGURES = [
 
 
 def main() -> int:
-    rows = read_all()
-    print(f"[figures] {len(rows)} ledger rows available.")
+    # Canonical figures are all base-feature results; exclude Phase-4k richer rows so they never
+    # dilute the pooled figures (e.g. S1's K=12 point). The richer verdict lives in table T5.
+    rows = [r for r in read_all() if feature_set_of(r) == "base"]
+    print(f"[figures] {len(rows)} base-feature ledger rows available.")
     FIG_DIR.mkdir(parents=True, exist_ok=True)
     n_ok = 0
     for fname, fn in _FIGURES:

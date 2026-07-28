@@ -41,3 +41,28 @@ def test_include_ood_flag_toggles_ood_metrics():
     da, loa, hia = m["delta_aurc_geom_adds"]
     assert loa <= da <= hia
     assert isinstance(m["geometry_adds_over_softmax"], bool)
+
+    # base run carries the Phase-4k feature-set tag and no richer feature columns
+    assert m["feature_set"] == "base"
+    assert not any(n.startswith(("spectrum/", "connect/")) for n in m["feature_names"])
+
+
+def test_richer_geometry_appends_groups_and_tags_feature_set():
+    from dataclasses import replace
+
+    cfg = load_config("configs/smoke.toml")
+    cfg = replace(cfg, eval=replace(cfg.eval, richer_geometry=True))
+    task = build_task(cfg.run.task)
+    m = evaluate(cfg, task, include_ood=False)
+
+    # Phase 4k: the richer groups flow into the feature names, AURC diagnostics, and ablation.
+    assert m["feature_set"] == "richer"
+    names = m["feature_names"]
+    assert any(n.startswith("spectrum/") for n in names)
+    assert any(n.startswith("connect/") for n in names)
+    fa = m["feature_ablation"]
+    assert {"drop_spectrum", "drop_connect", "spectrum_only", "connect_only"} <= set(fa)
+    assert all(0.0 <= v <= 1.0 for v in fa.values())
+    # the complementarity metric still computes on the richer feature set
+    da, loa, hia = m["delta_aurc_geom_adds"]
+    assert loa <= da <= hia

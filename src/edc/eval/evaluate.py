@@ -40,7 +40,8 @@ def _fold(fns, params, cfg, task, split: str, data_stream: int, key) -> dict:
 
     k_solve, k_geom = jax.random.split(key)
     traj = restarts.solve(fns, params, jnp.asarray(batch.x), cfg, k_solve)
-    feats, names = geometry_features(traj, fns, params, k_geom, grad_tol=cfg.inference.grad_tol)
+    feats, names = geometry_features(traj, fns, params, k_geom, grad_tol=cfg.inference.grad_tol,
+                                     richer=cfg.eval.richer_geometry)
 
     pred, _ = restarts.best_of_n_energy(traj)
     correct = np.asarray(task.evaluate(np.asarray(pred), batch.y)).astype(bool)
@@ -94,7 +95,7 @@ def _feature_diagnostics(features, names, correct, n_bins: int = 20) -> dict:
     return {"names": list(names), "auroc": auroc, "hist": hist}
 
 
-_FEATURE_GROUPS = ("basin", "energy", "curv", "dynamics")
+_FEATURE_GROUPS = ("basin", "energy", "curv", "dynamics", "spectrum", "connect")
 
 
 def _feature_ablation(fit_feats, fit_correct, test_feats, test_correct, names) -> dict:
@@ -105,7 +106,9 @@ def _feature_ablation(fit_feats, fit_correct, test_feats, test_correct, names) -
     """
     fit_feats = np.asarray(fit_feats, dtype=float)
     test_feats = np.asarray(test_feats, dtype=float)
-    groups = {g: [j for j, n in enumerate(names) if n.split("/")[0] == g] for g in _FEATURE_GROUPS}
+    # Only groups actually present in this feature set (base rows lack spectrum/connect columns).
+    groups = {g: cols for g in _FEATURE_GROUPS
+              if (cols := [j for j, n in enumerate(names) if n.split("/")[0] == g])}
 
     def aurc_on(cols: list[int]) -> float:
         if not cols:
@@ -240,6 +243,7 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
         "k_restarts": int(cfg.inference.k_restarts),
         "objective": getattr(cfg.train, "objective", "basin_center"),
         "sampler": getattr(cfg.inference, "sampler", "langevin"),
+        "feature_set": "richer" if cfg.eval.richer_geometry else "base",
         "accuracy_id": test["accuracy"],
         "base_error": float((~correct).mean()),
         "final_train_loss": float(history["epochs"][-1]["loss"]),

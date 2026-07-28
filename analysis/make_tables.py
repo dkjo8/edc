@@ -14,6 +14,7 @@ from edc.ledger import read_all
 try:  # sibling import when run as a script (analysis/ on sys.path)
     from aggregate import (
         aggregate_by_k,
+        feature_set_of,
         headline_cell,
         objective_of,
         selective_rows,
@@ -22,6 +23,7 @@ try:  # sibling import when run as a script (analysis/ on sys.path)
 except ImportError:  # pragma: no cover
     from analysis.aggregate import (
         aggregate_by_k,
+        feature_set_of,
         headline_cell,
         objective_of,
         selective_rows,
@@ -156,6 +158,41 @@ def _t4(rows: list[dict]) -> str:
         "tab:complementarity", f"run_ids={all_ids}")
 
 
+def _t5(rows: list[dict]) -> str:
+    """Richer geometry (Phase 4k): does the full Hessian spectrum + mode connectivity add signal?
+
+    Two rows per (task, reasoner) — ``base`` (14 features) vs ``richer`` (14 + spectrum + connect) —
+    so the reader sees directly whether the richer geometry moves the head-to-head win over softmax
+    and the conditional ``geom adds`` signal, especially on the graph cell where geometry ties.
+    """
+    body, all_ids = [], []
+    for task in tasks_present(rows):
+        for o in sorted({objective_of(r) for r in selective_rows(rows, task=task)}):
+            sets = {feature_set_of(r) for r in selective_rows(rows, task=task, objective=o)}
+            if "richer" not in sets:                      # only cells with a richer run
+                continue
+            for fs in ("base", "richer"):
+                if fs not in sets:
+                    continue
+                a = headline_cell(rows, task=task, objective=o, feature_set=fs)
+                adds = (f"{a['seeds_ci_excludes_0_geom_adds']}/{a['n_seeds']}"
+                        if a.get("has_geom_adds") else "--")
+                body.append([
+                    _esc(task), _esc(o), fs, _pm(a["aurc_geometry"]), _pm(a["delta_aurc_baseline"]),
+                    _pm(a["delta_aurc_geom_adds"]) if a.get("has_geom_adds") else "--", adds,
+                ])
+                all_ids += a["run_ids"]
+    header = ["task", "reasoner", "features", "AURC geom", r"$\Delta$AURC vs softmax",
+              r"$\Delta$AURC geom \emph{adds}", "seeds add"]
+    return _tabular(
+        header, body, "lllcccc",
+        "Richer geometry (mean$\\pm$std over seeds): the base 14-feature vector vs the base plus "
+        "the full Hessian spectrum and mode-connectivity barriers. If ``richer`` does not raise "
+        "$\\Delta$AURC vs softmax or the conditional ``geom adds`` on the graph cell, the graph "
+        "redundancy is a task property, not an artifact of thin curvature features.",
+        "tab:richer", f"run_ids={all_ids}")
+
+
 def _t3(rows: list[dict]) -> str:
     sel = selective_rows(rows)
     env = sel[-1]["env"] if sel else {}
@@ -188,9 +225,16 @@ def main() -> int:
         "T2b_feature_ablation.tex": _t2b(rows),
         "T3_repro.tex": _t3(rows),
     }
+    def _has_body(tex: str) -> bool:
+        return r"\midrule" in tex and bool(
+            tex.split(r"\midrule")[1].split(r"\bottomrule")[0].strip())
+
     t4 = _t4(rows)                                  # only when complementarity rows exist
-    if r"\midrule" in t4 and t4.split(r"\midrule")[1].split(r"\bottomrule")[0].strip():
+    if _has_body(t4):
         outputs["T4_complementarity.tex"] = t4
+    t5 = _t5(rows)                                  # only when richer-geometry rows exist
+    if _has_body(t5):
+        outputs["T5_richer_geometry.tex"] = t5
     for name, tex in outputs.items():
         (TABLE_DIR / name).write_text(tex)
         print(f"[tables] wrote {TABLE_DIR / name}")
