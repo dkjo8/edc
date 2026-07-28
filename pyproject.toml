@@ -1,6 +1,6 @@
 [project]
 name = "energy-descent-certificates"
-version = "0.0.2"
+version = "0.0.3"
 description = "Distribution-free selective prediction and adaptive halting from the geometry of an energy-based reasoner's inference-time descent."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
