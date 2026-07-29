@@ -1,0 +1,12 @@
+# Phase 4k: 5-seed arithmetic-IRED with RICHER geometry (full Hessian spectrum + mode connectivity).
+# Positive control — arith-IRED already beats softmax 4/5 with the base 14 features; richer geometry
+# should keep or strengthen that. Mirrors ired_seeds.toml (full folds, annealed sampler) so the only
+# changed variable vs the base cell is the feature set.
+[sweep]
+base = "configs/experiments/arithmetic_ired.toml"
+
+[sweep.override]
+"eval.richer_geometry" = true
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

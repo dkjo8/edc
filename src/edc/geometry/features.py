@@ -14,8 +14,10 @@ import numpy as np
 
 from edc.geometry import curvature
 from edc.geometry.basin import basin_features
+from edc.geometry.connectivity import connectivity_features
 from edc.geometry.dynamics import dynamics_features
 from edc.geometry.energy_stats import energy_features
+from edc.geometry.spectrum import spectrum_features
 from edc.inference.trajectory import TrajectoryRecord
 
 
@@ -45,19 +47,28 @@ def _curvature_features(traj, fns, params, key) -> tuple[np.ndarray, list[str]]:
 
 
 def geometry_features(
-    traj: TrajectoryRecord, fns, params, key, grad_tol: float = 1e-3
+    traj: TrajectoryRecord, fns, params, key, grad_tol: float = 1e-3, richer: bool = False
 ) -> tuple[np.ndarray, list[str]]:
     """Return ``((B, n_features) array, feature-name list)``.
 
-    Concatenates the four feature groups (basin, energy stats, curvature, dynamics) in a
-    fixed order. ``key`` seeds the curvature HVP estimators; ``grad_tol`` sets the
+    Concatenates the four base feature groups (basin, energy stats, curvature, dynamics) in a
+    fixed order — 14 features. ``key`` seeds the curvature HVP estimators; ``grad_tol`` sets the
     convergence threshold for the dynamics ``steps`` feature (pass ``cfg.inference.grad_tol``).
+
+    ``richer=True`` (Phase 4k, opt-in) appends two richer groups **after** the base 14 — the full
+    Hessian spectrum (``spectrum/*``) and mode-connectivity barriers (``connect/*``) — so the base
+    column order/indices are unchanged and every prior 14-feature result is reproduced exactly.
     """
     b_feats, b_names = basin_features(traj)
     e_feats, e_names = energy_features(traj)
     c_feats, c_names = _curvature_features(traj, fns, params, key)
     d_feats, d_names = dynamics_features(traj, grad_tol)
 
-    feats = np.concatenate([b_feats, e_feats, c_feats, d_feats], axis=1)
-    names = [*b_names, *e_names, *c_names, *d_names]
+    groups = [(b_feats, b_names), (e_feats, e_names), (c_feats, c_names), (d_feats, d_names)]
+    if richer:
+        groups.append(spectrum_features(traj, fns, params))
+        groups.append(connectivity_features(traj, fns, params))
+
+    feats = np.concatenate([g for g, _ in groups], axis=1)
+    names = [n for _, ns in groups for n in ns]
     return feats, names

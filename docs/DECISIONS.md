@@ -2,6 +2,23 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-29 — Phase 4k: the graph redundancy is a task property, not thin features
+**Finding/decision:** the 4j redundancy verdict rested on a thin curvature description (only
+`λmax`/`tr(H)`), so we added two opt-in richer feature groups — the **full Hessian spectrum**
+(`geometry/spectrum.py`, exact `d×d` eigh via new `curvature.batched_spectrum`) and **mode
+connectivity** (`geometry/connectivity.py`, energy barriers via new `curvature.batched_path_energy`)
+— behind `[eval] richer_geometry` and re-ran the 4j complementarity test on all four cells (T5).
+**Result:** richer geometry helps nowhere — the crux graph-IRED conditional signal over softmax stays
+−0.002 (0/5); it's a wash where geometry already wins (arith-IRED +0.007, 4/5) and slightly worse on
+the fixed-bowl basin-center cells (extra features add noise). So the graph tie is a genuine property
+of the task, not feature poverty. **Design choices:** (a) all new JAX lives in `curvature.py` to keep
+invariant 1 (the two feature modules are pure NumPy); (b) richer is opt-in and appended *after* the
+base 14 so every prior result is reproduced byte-identically; (c) aggregation is feature-set-aware
+(`aggregate.feature_set_of`; `headline_cell`/`by_k`/`aggregate_by_k` default `feature_set="base"`) so
+richer rows never pollute the canonical T1/T2/T4 — exactly mirroring how `objective` keeps IRED out of
+T1. **Why record it:** it closes the paper's stated "richer geometry" open question with a decisive
+negative result, strengthening (not weakening) the redundancy claim. **Reversible?** Fully additive.
+
 ## 2026-07-28 — Phase 4j: the graph tie is redundancy, not complementarity (combined-mapper test)
 **Finding/decision:** to distinguish redundancy from complementarity we measure whether a mapper on
 `[geometry ∪ softmax]` beats one on `[softmax]` alone (both fit on the fit fold; `evaluate` adds

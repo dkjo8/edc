@@ -198,6 +198,40 @@ the softmax does not. Re-running this baseline stress test under IRED training i
 experiment (see SESSION_HANDOFF). MC-dropout / deep ensembles remain deferred (the K-restart
 best-of-N already supplies ensemble-like diversity).
 
+### Richer geometry — is the graph tie thin features or a task property? (Phase 4k → T5)
+
+The Phase-4j redundancy verdict rested on a thin curvature representation: of the 14 features,
+curvature was only `λmax` (power iteration) and `tr(H)` (Hutchinson). So "geometry is redundant with
+softmax on graph" was confounded with "our geometry features are impoverished." Phase 4k adds two
+richer, opt-in groups (`[eval] richer_geometry=true`) — the **full Hessian spectrum**
+(`spectrum/*`: `lmin`, negative-eigenvalue fraction, effective rank / participation ratio, log-det,
+each mean-over-restarts and at the best restart; exact `d×d` eigendecomposition since `d` is small)
+and **mode connectivity** (`connect/*`: energy barriers along the straight-line path from the best
+restart to the others) — and re-runs the Phase-4j complementarity test on all four cells. Same
+reasoners, folds, and mappers; only the feature set changes.
+
+| task | reasoner | features | AURC geom | ΔAURC vs softmax | ΔAURC geom *adds* | seeds add |
+|------|----------|----------|-----------|------------------|-------------------|-----------|
+| arithmetic | basin-center | base | $0.059$ | $-0.011$ | $+0.001$ | $0/5$ |
+| arithmetic | basin-center | **richer** | $0.061$ | $-0.012$ | $-0.002$ | $1/5$ |
+| arithmetic | IRED | base | $0.028$ | $+0.007$ | $+0.007$ | $4/5$ |
+| arithmetic | IRED | **richer** | $0.028$ | $+0.008$ | $+0.007$ | $4/5$ |
+| graph | basin-center | base | $0.159$ | $-0.034$ | $-0.006$ | $0/5$ |
+| graph | basin-center | **richer** | $0.162$ | $-0.037$ | $-0.009$ | $0/5$ |
+| **graph** | **IRED** | base | $0.056$ | $+0.001$ | $+0.001$ | $0/5$ |
+| **graph** | **IRED** | **richer** | $0.055$ | $+0.002$ | $\mathbf{-0.002}$ | **$0/5$** |
+
+**Verdict — the graph redundancy is a task property, not a feature-poverty artifact.** In the crux
+cell (graph-IRED), the full spectrum + mode connectivity leave the conditional signal over softmax at
+$-0.002$, $0/5$ — geometry still adds *nothing*. Richer geometry changes the picture nowhere: it is a
+wash on the one cell geometry already wins (arithmetic-IRED, $+0.007$, $4/5$, unchanged) and slightly
+*worse* on the fixed-bowl basin-center cells (adding features to a trivial landscape only adds noise:
+AURC $0.059\to0.061$ arith, $0.159\to0.162$ graph). So the answer to "does *more* landscape signal
+help on graph?" is **no** — a well-calibrated softmax genuinely captures what descent geometry would
+contribute there, even with the richest geometry we can extract. The base rows reproduce the Phase-4j
+numbers exactly, confirming richer geometry is purely additive and non-breaking (default stays the
+canonical 14 features; aggregation is feature-set-aware so richer never pollutes T1/T2/T4).
+
 ## Operating regime
 
 Tune each task's difficulty so base accuracy is **70–85%**. Fully-solved tasks saturate AURC and

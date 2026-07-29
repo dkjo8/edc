@@ -213,3 +213,25 @@ def test_geometry_features_deterministic():
     f1, _ = geometry_features(traj, fns, params, root_key(2), grad_tol=cfg.inference.grad_tol)
     f2, _ = geometry_features(traj, fns, params, root_key(2), grad_tol=cfg.inference.grad_tol)
     assert np.array_equal(f1, f2)
+
+
+# ------------------------------- Phase 4k: opt-in richer geometry ------------------------------
+
+N_RICHER_FEATURES = N_EXPECTED_FEATURES + 8 + 3  # + spectrum 8 + connect 3 = 25
+
+
+def test_richer_appends_spectrum_and_connect_without_touching_base():
+    traj, fns, params, cfg = _real_traj(n=8)
+    base, base_names = geometry_features(traj, fns, params, root_key(1),
+                                         grad_tol=cfg.inference.grad_tol)
+    rich, rich_names = geometry_features(traj, fns, params, root_key(1),
+                                         grad_tol=cfg.inference.grad_tol, richer=True)
+    # richer==False stays exactly 14; richer==True appends the two new groups after the base 14.
+    assert base.shape == (8, N_EXPECTED_FEATURES)
+    assert rich.shape == (8, N_RICHER_FEATURES)
+    assert rich_names[:N_EXPECTED_FEATURES] == base_names        # base names/order unchanged
+    assert np.array_equal(rich[:, :N_EXPECTED_FEATURES], base)   # base values byte-identical
+    assert len(set(rich_names)) == N_RICHER_FEATURES            # unique
+    assert np.all(np.isfinite(rich))
+    prefixes = {n.split("/")[0] for n in rich_names[N_EXPECTED_FEATURES:]}
+    assert prefixes == {"spectrum", "connect"}

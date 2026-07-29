@@ -2,7 +2,7 @@
 
 **Start here.** Rolling state of the project between sessions.
 
-## Current state (2026-07-25)
+## Current state (2026-07-29)
 
 - **Phase 0 (skeleton): ✅** repo tree, `uv`/`pyproject.toml`, `Makefile`, CI, config system
   (`edc.config`), deterministic seeding (`edc.seeding`), append-only ledger (`edc.ledger`),
@@ -88,8 +88,20 @@
   ≈ softmax alone (0/5, +0.001) — a well-calibrated softmax already captures what descent geometry
   would add there. `headline_cell` hardened (per-seed timestamp dedup + prefer newest field-carrying
   cell) so re-runs after config-schema changes don't create duplicate/stale headline cells. 95 tests.
-- **Open question / next:** richer geometry features (full Hessian spectrum, mode connectivity) to
-  test whether MORE landscape signal helps on graph; more tasks (E3/E4); Modal; scale-up.
+- **Phase 4k (richer geometry — is the graph tie thin features or a task property?): ✅** opt-in
+  `[eval] richer_geometry=true` appends two groups after the base 14: the **full Hessian spectrum**
+  (`geometry/spectrum.py`: lmin, neg-eigenvalue fraction, effective rank, log-det — exact `d×d` eigh)
+  and **mode connectivity** (`geometry/connectivity.py`: energy barriers from the best restart to the
+  others). New JAX lives in `curvature.py` (`batched_spectrum`, `batched_path_energy`) to respect
+  invariant 1; the two feature modules are pure NumPy. Re-ran the 4j complementarity test on all four
+  cells (T5). **Answer: the graph redundancy is a task property, not thin features.** Richer geometry
+  helps nowhere — graph-IRED conditional signal over softmax stays **−0.002, 0/5**; it's a wash where
+  geometry already wins (arith-IRED +0.007, 4/5, unchanged) and slightly worse on the fixed-bowl
+  basin-center cells (extra features add noise). Aggregation is feature-set-aware (`feature_set_of`;
+  `headline_cell`/`by_k` default `feature_set="base"`) so richer never pollutes T1/T2/T4. 109 tests.
+- **Open question / next:** a 3rd/4th task (E3/E4, e.g. logic/Sudoku) to characterize *when* geometry
+  beats softmax now that feature poverty is ruled out; harden honesty gaps (multi-seed halting/OOD,
+  MC-dropout baseline, a full-fold graph run that actually certifies); Modal; scale-up.
 
 ## What is real vs stub
 
@@ -102,7 +114,9 @@
   **the sweep/aggregation/tables stack**: `run_sweep.py`, `analysis.aggregate`, `make_tables`
   (T1–T3), S1 K-lift figure; **adaptive halting**: `halting.adaptive`, `eval.evaluate_halting`,
   `run_halting.py`, F4; **F5 mechanism + F6 OOD stress** (`feature_diagnostics`, `ood_validity`);
-  **softmax-confidence baselines** (`eval/baselines.py`: MSP/temp/entropy).
+  **softmax-confidence baselines** (`eval/baselines.py`: MSP/temp/entropy); **richer geometry**
+  (opt-in `geometry/spectrum.py` full-spectrum + `geometry/connectivity.py` mode-connectivity, with
+  `curvature.batched_spectrum`/`batched_path_energy` in the JAX core; T5).
 - Stub: **IRED landscape training** (`train/losses.py` is still the Phase-1 basin-center scheme),
   logic/hard tasks (E3/E4), Modal runner, paper write-up.
 

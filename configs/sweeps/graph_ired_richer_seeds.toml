@@ -1,0 +1,13 @@
+# Phase 4k THE CRUX: 5-seed graph-IRED with RICHER geometry (full Hessian spectrum + mode
+# connectivity). On graph-IRED the base 14 features tie softmax and the combined mapper adds nothing
+# (Phase 4j: redundancy, 0/5). This asks whether that tie is a real task property or an artifact of
+# the thin lambda_max/trace curvature features. Same base cell as graph_ired_seeds.toml; only the
+# feature set changes.
+[sweep]
+base = "configs/experiments/graph_ired.toml"
+
+[sweep.override]
+"eval.richer_geometry" = true
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

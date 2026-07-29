@@ -51,4 +51,11 @@ inference-time descent** into distribution-free reliability certificates. Read
 - Phase 4j complementarity ✅ (T4): geometry adds *conditional* signal over softmax ONLY where it
   wins head-to-head (arithmetic-IRED 4/5); on graph-IRED the combined [geom+softmax] mapper ≈ softmax
   (0/5) — the graph tie is **redundancy, not complementarity**.
-- Next: richer geometry (full spectrum / mode connectivity) · E3/E4 · Modal · scale-up.
+- Phase 4k richer geometry ✅ (T5): opt-in `[eval] richer_geometry=true` appends the full Hessian
+  spectrum (`spectrum/*`, exact d×d eigh) + mode-connectivity barriers (`connect/*`) after the base
+  14. Re-ran the 4j test on all 4 cells: richer geometry helps **nowhere** — graph-IRED conditional
+  signal stays −0.002 (0/5). So the **graph redundancy is a task property, not thin features**; it's
+  a wash where geometry already wins (arith-IRED +0.007 4/5) and slightly worse on fixed-bowl cells.
+  Aggregation is feature-set-aware (`feature_set_of`, canonical tables default `feature_set="base"`)
+  so richer never pollutes T1/T2/T4. JAX for spectrum/connectivity lives in `curvature.py` (inv. 1).
+- Next: E3/E4 (a 3rd/4th task to characterize *when* geometry beats softmax) · Modal · scale-up.

@@ -1,0 +1,13 @@
+# Phase 4k: 5-seed arithmetic basin-center with RICHER geometry, for completeness so T5 has the
+# base-vs-richer comparison on all four (task, reasoner) cells. Reduced folds match arith_seeds.toml
+# (its base-feature counterpart) so the only changed variable is the feature set.
+[sweep]
+base = "configs/experiments/arithmetic_selective.toml"
+
+[sweep.override]
+"eval.n_eval" = 600
+"conformal.n_calib" = 800
+"eval.richer_geometry" = true
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]
