@@ -51,14 +51,19 @@ def expand_grid(grid: dict[str, list]) -> list[dict]:
     return [dict(zip(keys, combo, strict=True)) for combo in combos]
 
 
-def load_sweep(path: str | Path) -> tuple[dict, dict, list[dict]]:
-    """Return ``(base_resolved_dict, override, cells)`` from a sweep TOML."""
+def load_sweep(path: str | Path) -> tuple[dict, dict, list[dict], dict]:
+    """Return ``(base_resolved_dict, override, cells, opts)`` from a sweep TOML.
+
+    ``opts`` carries sweep-level flags that are not config keys — currently ``include_ood`` (default
+    False), which turns the OOD fold back on for a sweep that needs multi-seed OOD/certification.
+    """
     with open(path, "rb") as f:
         spec = tomllib.load(f)["sweep"]
     base = load_config(spec["base"]).to_dict()
     override = spec.get("override", {})
     cells = expand_grid(spec.get("grid", {}))
-    return base, override, cells
+    opts = {"include_ood": bool(spec.get("include_ood", False))}
+    return base, override, cells, opts
 
 
 def cell_config_dict(base: dict, override: dict, cell: dict) -> dict:
@@ -73,18 +78,19 @@ def main(argv: list[str]) -> int:
     if not argv:
         print("usage: run_sweep.py <sweep.toml>", file=sys.stderr)
         return 2
-    base, override, cells = load_sweep(argv[0])
+    base, override, cells, opts = load_sweep(argv[0])
     from edc.config import load_from_dict  # local: keep module import surface small
 
+    include_ood = opts["include_ood"]
     print(f"[edc] sweep '{Path(argv[0]).name}': {len(cells)} cells "
-          f"(override={override or '{}'}) -> appending to results/ledger.jsonl")
+          f"(override={override or '{}'}, include_ood={include_ood}) -> results/ledger.jsonl")
     for i, cell in enumerate(cells, 1):
         d = cell_config_dict(base, override, cell)
         cfg = load_from_dict(d)
         task_kwargs = d.get("task", {}).get(cfg.run.task, {})
         task = build_task(cfg.run.task, **task_kwargs)
         print(f"\n[edc] cell {i}/{len(cells)}: {cell}")
-        row = run_and_append(cfg, task, include_ood=False)
+        row = run_and_append(cfg, task, include_ood=include_ood)
         print(f"[edc] -> run_id={row['run_id']}")
     ledger = REPO_ROOT / "results/ledger.jsonl"
     print(f"\n[edc] sweep complete: {len(cells)} rows appended -> {ledger}")

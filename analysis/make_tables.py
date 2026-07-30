@@ -14,6 +14,7 @@ from edc.ledger import read_all
 try:  # sibling import when run as a script (analysis/ on sys.path)
     from aggregate import (
         aggregate_by_k,
+        aggregate_halting,
         feature_set_of,
         headline_cell,
         objective_of,
@@ -23,6 +24,7 @@ try:  # sibling import when run as a script (analysis/ on sys.path)
 except ImportError:  # pragma: no cover
     from analysis.aggregate import (
         aggregate_by_k,
+        aggregate_halting,
         feature_set_of,
         headline_cell,
         objective_of,
@@ -193,6 +195,59 @@ def _t5(rows: list[dict]) -> str:
         "tab:richer", f"run_ids={all_ids}")
 
 
+def _t6(rows: list[dict]) -> str:
+    """Adaptive halting (CRC guarantee) over seeds — H1 on a multi-seed footing (Phase 4l).
+
+    Per task: the CRC-chosen agreement threshold, compute saved, halting risk vs the budget alpha,
+    end-task accuracy drop, and how many seeds keep the risk within budget — all mean$\\pm$std.
+    """
+    cells = aggregate_halting(rows)
+    body, all_ids = [], []
+    for task, a in cells.items():
+        body.append([
+            _esc(task), f"${a['alpha']}$", _pm(a["tau_hat"], 2), _pm(a["compute_saved"], 3),
+            _pm(a["halting_risk"], 3), _pm(a["accuracy_drop"], 3),
+            f"{a['seeds_within_budget']}/{a['n_seeds']}",
+        ])
+        all_ids += a["run_ids"]
+    header = ["task", r"$\alpha$", r"$\hat\tau$", "compute saved", "halting risk",
+              "acc drop", "seeds $\\le\\alpha$"]
+    return _tabular(
+        header, body, "lcccccc",
+        "Adaptive halting (CRC), mean$\\pm$std over seeds: the basin-agreement threshold "
+        "$\\hat\\tau$ is calibrated on a disjoint fold so the halting risk (disagreement with the "
+        "full-budget answer) stays within the budget $\\alpha$. ``compute saved`` is the fraction "
+        "of descent steps skipped; ``seeds $\\le\\alpha$`` counts seeds with test risk in budget.",
+        "tab:halting", f"run_ids={all_ids}")
+
+
+def _t7(rows: list[dict]) -> str:
+    """OOD stress over seeds — the guarantee holds ID and breaks under shift (Phase 4l).
+
+    Per task: ID vs OOD accuracy, and the ID-calibrated LTT threshold's selective risk on the ID
+    fold vs the shifted fold, with a count of seeds where OOD risk stays within budget.
+    """
+    body, all_ids = [], []
+    for task in tasks_present(rows):
+        a = headline_cell(rows, task=task)
+        if not a.get("has_ood"):
+            continue
+        body.append([
+            _esc(task), _pm(a["accuracy_id"], 2), _pm(a["accuracy_ood"], 2),
+            _pm(a["ltt_selective_risk"], 3), _pm(a["ood_selective_risk"], 3),
+            f"{a['seeds_ood_within_budget']}/{a['n_seeds']}",
+        ])
+        all_ids += a["run_ids"]
+    header = ["task", "acc ID", "acc OOD", "sel.\\ risk ID", "sel.\\ risk OOD", "seeds OOD ok"]
+    return _tabular(
+        header, body, "lccccc",
+        "OOD stress (mean$\\pm$std over seeds): the ID-calibrated selective-prediction threshold "
+        "applied to a shifted fold. The selective-risk guarantee holds in-distribution but breaks "
+        "under shift (OOD risk exceeds the budget), motivating abstention; ``seeds OOD ok`` counts "
+        "seeds whose OOD risk still stays within budget.",
+        "tab:oodstress", f"run_ids={all_ids}")
+
+
 def _t3(rows: list[dict]) -> str:
     sel = selective_rows(rows)
     env = sel[-1]["env"] if sel else {}
@@ -235,6 +290,12 @@ def main() -> int:
     t5 = _t5(rows)                                  # only when richer-geometry rows exist
     if _has_body(t5):
         outputs["T5_richer_geometry.tex"] = t5
+    t6 = _t6(rows)                                  # only when split='halting' rows exist
+    if _has_body(t6):
+        outputs["T6_halting.tex"] = t6
+    t7 = _t7(rows)                                  # only when include_ood rows exist
+    if _has_body(t7):
+        outputs["T7_ood_stress.tex"] = t7
     for name, tex in outputs.items():
         (TABLE_DIR / name).write_text(tex)
         print(f"[tables] wrote {TABLE_DIR / name}")

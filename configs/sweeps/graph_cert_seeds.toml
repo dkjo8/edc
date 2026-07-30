@@ -1,0 +1,10 @@
+# Phase 4l THE CERT RUN: 5-seed FULL-FOLD graph selective prediction (n_calib=1500), so LTT
+# abstention can actually certify nonzero coverage on graph — the reduced-fold seed sweeps
+# (n_calib=800) certify zero. include_ood=true also yields 5-seed graph OOD stress (T7). No n_calib
+# override: it inherits graph_selective.toml's full folds. Heaviest cell set in the project.
+[sweep]
+base = "configs/experiments/graph_selective.toml"
+include_ood = true
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

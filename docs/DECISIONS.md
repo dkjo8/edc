@@ -2,6 +2,24 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-07-30 — Phase 4l: certificates on firm footing (multi-seed guarantees + graph certification)
+**Finding/decision:** put the project's core contribution — the distribution-free certificates — on a
+5-seed footing. (1) **Halting:** new `experiments/run_halting_sweep.py` + `aggregate.halting_rows`/
+`aggregate_halting_cell` (split="halting" was excluded from `selective_rows`). Arith saves
+57.1%±1.7% (single-seed H1 was 57.8%), graph 80.8%±5.2%; both risk ≤ α, within budget 5/5 (T6).
+(2) **OOD:** `[sweep] include_ood=true` in `run_sweep` + an OOD aggregation block; the selective
+guarantee breaks under shift over 5 seeds (arith ID 0.077 → OOD 0.764, 0/5; graph 0.010 → 0.168,
+4/5) (T7). (3) **Graph certification:** a full-fold run (n_calib=1500) certifies only 1.1% coverage
+at α=0.1 but 22.5% at α=0.15 and 48.5% at α=0.20, with achieved risk ≤ target at every α — so the
+old "certifies zero coverage" note was an **operating-point artifact** of graph's ~30% error floor,
+not a broken certificate. **Bugs fixed:** (a) halting aggregation dedups by seed (the stale Phase-4b
+H1 seed-0 row survived under a drifted config_hash, giving n=6); (b) `plotting._selective_row` and
+`_halting_row` now prefer arithmetic, since the new full-fold (n_test=1500) graph rows would
+otherwise tie/flip the arithmetic figures F2/F4/F6 to graph. **Why record it:** every guarantee
+number the paper states is now multi-seed, and the graph certificate is shown valid at its honest α.
+**Reversible?** Additive runner + aggregation + a sweep flag; default `include_ood=False` preserves
+all prior sweeps.
+
 ## 2026-07-29 — Phase 4k: the graph redundancy is a task property, not thin features
 **Finding/decision:** the 4j redundancy verdict rested on a thin curvature description (only
 `λmax`/`tr(H)`), so we added two opt-in richer feature groups — the **full Hessian spectrum**

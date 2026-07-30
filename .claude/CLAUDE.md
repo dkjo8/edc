@@ -58,4 +58,13 @@ inference-time descent** into distribution-free reliability certificates. Read
   a wash where geometry already wins (arith-IRED +0.007 4/5) and slightly worse on fixed-bowl cells.
   Aggregation is feature-set-aware (`feature_set_of`, canonical tables default `feature_set="base"`)
   so richer never pollutes T1/T2/T4. JAX for spectrum/connectivity lives in `curvature.py` (inv. 1).
+- Phase 4l certificates on firm footing ✅ (T6/T7): put the guarantees on a 5-seed footing.
+  `run_halting_sweep.py` + `aggregate.{halting_rows,aggregate_halting_cell}` → **T6**: arith halting
+  saves 57.1%±1.7% (was single-seed 57.8%), graph 80.8%±5.2%, both risk ≤ α, within-budget 5/5.
+  `[sweep] include_ood=true` + OOD aggregation block → **T7**: guarantee breaks under shift over 5
+  seeds (arith ID risk 0.077→OOD 0.764, 0/5; graph 0.010→0.168, 4/5). Full-fold graph cert run: LTT
+  certifies 1.1% cov at α=0.1 but **22.5% at α=0.15 / 48.5% at α=0.20, validity holds at every α** —
+  the "certifies zero" was an operating-point artifact of graph's ~30% error floor, not a broken
+  certificate. Aggregation dedups halting rows by seed (drops the stale Phase-4b H1 config-hash row);
+  `plotting._selective_row`/`_halting_row` prefer arithmetic so full-fold graph rows don't flip F2/F4/F6.
 - Next: E3/E4 (a 3rd/4th task to characterize *when* geometry beats softmax) · Modal · scale-up.

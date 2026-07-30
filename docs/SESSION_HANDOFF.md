@@ -2,7 +2,7 @@
 
 **Start here.** Rolling state of the project between sessions.
 
-## Current state (2026-07-29)
+## Current state (2026-07-30)
 
 - **Phase 0 (skeleton): ✅** repo tree, `uv`/`pyproject.toml`, `Makefile`, CI, config system
   (`edc.config`), deterministic seeding (`edc.seeding`), append-only ledger (`edc.ledger`),
@@ -99,9 +99,21 @@
   geometry already wins (arith-IRED +0.007, 4/5, unchanged) and slightly worse on the fixed-bowl
   basin-center cells (extra features add noise). Aggregation is feature-set-aware (`feature_set_of`;
   `headline_cell`/`by_k` default `feature_set="base"`) so richer never pollutes T1/T2/T4. 109 tests.
-- **Open question / next:** a 3rd/4th task (E3/E4, e.g. logic/Sudoku) to characterize *when* geometry
-  beats softmax now that feature poverty is ruled out; harden honesty gaps (multi-seed halting/OOD,
-  MC-dropout baseline, a full-fold graph run that actually certifies); Modal; scale-up.
+- **Phase 4l (certificates on firm footing — multi-seed guarantees + graph certification): ✅** put
+  the project's core contribution (the certificates) on a 5-seed footing. New
+  `experiments/run_halting_sweep.py` + `aggregate.{halting_rows, aggregate_halting_cell}` → **T6**:
+  arith halting saves **57.1%±1.7%** (was single-seed 57.8%), graph **80.8%±5.2%**, both halting risk
+  ≤ α, within budget 5/5. `[sweep] include_ood=true` (run_sweep) + an OOD aggregation block → **T7**:
+  the selective guarantee breaks under shift over 5 seeds (arith ID sel-risk 0.077 → OOD 0.764, 0/5;
+  graph 0.010 → 0.168, 4/5). Full-fold graph cert run (`graph_cert_seeds.toml`, n_calib=1500): LTT
+  certifies only **1.1% coverage at α=0.1** but **22.5% at α=0.15, 48.5% at α=0.20; validity holds at
+  every α** — the old "certifies zero" was an operating-point artifact of graph's ~30% error floor,
+  not a broken certificate. Fixed a stale-row bug (halting dedups by seed, dropping the Phase-4b H1
+  row under a drifted config_hash) and made `plotting._selective_row`/`_halting_row` prefer arithmetic
+  so the new full-fold (n_test=1500) graph rows don't flip F2/F4/F6. 115 tests.
+- **Open question / next:** a 3rd/4th task (E3/E4, e.g. logic/parity) to characterize *when* geometry
+  beats softmax now that feature poverty is ruled out; a deep-ensemble baseline (the one remaining
+  deferred baseline); Modal; scale-up.
 
 ## What is real vs stub
 

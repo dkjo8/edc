@@ -1,0 +1,8 @@
+# Phase 4l: 5-seed adaptive-halting (CRC) on graph shortest-path — a 2nd task for the halting
+# guarantee (secondary to the arithmetic headline). Uses run_halting_sweep.py -> split="halting"
+# rows -> aggregate_halting -> T6.
+[sweep]
+base = "configs/experiments/graph_halting.toml"
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]
