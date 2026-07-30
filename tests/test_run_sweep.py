@@ -35,7 +35,17 @@ def test_cell_config_applies_override_and_cell():
 
 
 def test_load_sweep_reads_real_config():
-    base, override, cells = run_sweep.load_sweep("configs/sweeps/k_restarts.toml")
+    base, override, cells, opts = run_sweep.load_sweep("configs/sweeps/k_restarts.toml")
     assert len(cells) == 25                           # 5 K x 5 seeds
     assert override["eval.n_eval"] == 600
     assert base["task"]["arithmetic"]["n_operands"] == 6   # base experiment config resolved
+    assert opts["include_ood"] is False               # default: OOD skipped in sweeps
+
+
+def test_load_sweep_include_ood_flag():
+    # Phase 4l: a sweep can opt the OOD fold back on for multi-seed OOD / certification runs.
+    base, override, cells, opts = run_sweep.load_sweep("configs/sweeps/graph_cert_seeds.toml")
+    assert opts["include_ood"] is True
+    assert len(cells) == 5                            # 5 seeds
+    assert base["conformal"]["n_calib"] == 1500       # full folds (no reduced-fold override)
+    assert "conformal.n_calib" not in override

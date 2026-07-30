@@ -1,0 +1,36 @@
+# Adaptive-halting experiment on graph shortest-path (Phase 4l — a 2nd task for the CRC guarantee).
+# Same task/inference/train as the graph selective E2 config, but per-step decoding is recorded so
+# the basin-agreement halting threshold can be CRC-calibrated. Folds kept modest to bound decode
+# memory on CPU (mirrors arithmetic_halting).
+[run]
+task = "graph_planning"
+seed = 0
+notes = "graph adaptive-halting run"
+
+[task.graph_planning]
+n_nodes = 7
+ood_n_nodes = 10
+edge_prob = 0.4
+max_len = 4
+
+[model]
+latent_dim = 32
+hidden_dim = 128
+context_dim = 64
+
+[inference]
+k_restarts = 12
+steps = 50
+
+[train]
+epochs = 25             # graph needs more epochs than arithmetic to reach the 70-85% regime
+n_train = 8000
+n_neg = 4
+
+[eval]
+n_eval = 800            # test fold (per-step decode kept small)
+
+[conformal]
+alpha = 0.1             # halting error budget: E[early answer != full answer] <= alpha
+delta = 0.05
+n_calib = 800           # calibration fold

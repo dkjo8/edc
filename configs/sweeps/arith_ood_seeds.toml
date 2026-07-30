@@ -1,0 +1,9 @@
+# Phase 4l: 5-seed FULL-FOLD arithmetic selective prediction with include_ood=true, so the OOD
+# stress result (F6: ID risk vs OOD risk under the ID-calibrated threshold) gets a multi-seed
+# mean±std instead of a single seed. Matches graph_cert_seeds so T7 is 5-seed on both tasks.
+[sweep]
+base = "configs/experiments/arithmetic_selective.toml"
+include_ood = true
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

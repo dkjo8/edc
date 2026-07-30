@@ -232,6 +232,52 @@ contribute there, even with the richest geometry we can extract. The base rows r
 numbers exactly, confirming richer geometry is purely additive and non-breaking (default stays the
 canonical 14 features; aggregation is feature-set-aware so richer never pollutes T1/T2/T4).
 
+### Certificates on firm footing — multi-seed guarantees + graph certification (Phase 4l → T6/T7)
+
+The certificates are the contribution, but three of their numbers were single-seed or vacuous. This
+phase puts all three on a 5-seed footing (new `run_halting_sweep.py`; `[sweep] include_ood=true`;
+objective/feature-set-style aggregation for halting + OOD; full-fold graph cert run). Additive — no
+change to the geometry features or the falsification test.
+
+**Adaptive halting (CRC), 5 seeds — T6.** The H1 headline replicates and extends:
+
+| task | τ̂ | compute saved | halting risk (≤ α=0.1) | seeds ≤ α |
+|------|-----|---------------|------------------------|-----------|
+| arithmetic | $0.917$ | $0.571 \pm 0.017$ | $0.012 \pm 0.005$ | $5/5$ |
+| graph | $0.85\pm0.03$ | $\mathbf{0.808 \pm 0.052}$ | $0.065 \pm 0.032$ | $5/5$ |
+
+The single-seed 57.8% arithmetic number is now $57.1\%\pm1.7\%$ over 5 seeds (within budget every
+seed); on graph the CRC halt saves **~81%** of compute at risk $0.065 \le 0.1$ — the halting
+guarantee holds on both tasks across seeds.
+
+**OOD stress, 5 seeds — T7.** The ID-calibrated selective threshold applied to the shifted fold:
+
+| task | acc ID | acc OOD | sel. risk ID | sel. risk OOD | seeds OOD ≤ α |
+|------|--------|---------|--------------|---------------|---------------|
+| arithmetic | $0.83$ | $0.21$ | $0.077$ | $\mathbf{0.764}$ | $0/5$ |
+| graph | $0.70$ | $0.33$ | $0.010$ | $0.168$ | $4/5$ |
+
+The guarantee holds ID and **breaks under shift** on both tasks (arithmetic catastrophically:
+$0.077\to0.764$; graph mildly: $0.010\to0.168$) — 5-seed confirmation of F6, and the argument for
+treating an abstention as a routing signal.
+
+**Graph certification — the certificate is valid on graph, at its honest operating point.** At the
+full fold ($n_\text{calib}=1500$) the graph LTT abstention still certifies almost nothing at
+α=0.1 (coverage $0.011$), because graph's ~30% base error leaves no confident slice with true error
+below 10%. But sweeping α (from the same `coverage_validity` block; mean over 5 seeds):
+
+| α | certified coverage | achieved risk |
+|-----|--------------------|---------------|
+| $0.10$ | $0.011$ | $0.010$ |
+| $0.15$ | $0.225$ | $0.078$ |
+| $0.20$ | $0.485$ | $0.157$ |
+| $0.30$ | $0.895$ | $0.263$ |
+
+Achieved risk sits **at or below target at every α** — validity holds; the earlier "certifies zero
+coverage" was an α=0.1 operating-point artifact, not a broken certificate. Graph certifies **22.5%
+coverage at α=0.15** and **48.5% at α=0.20**, versus arithmetic's 74% at α=0.10 — the honest cost of
+a harder task's higher error floor, not a failure. (F3 shows the arithmetic α-sweep on the diagonal.)
+
 ## Operating regime
 
 Tune each task's difficulty so base accuracy is **70–85%**. Fully-solved tasks saturate AURC and

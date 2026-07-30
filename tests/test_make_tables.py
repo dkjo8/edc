@@ -6,7 +6,7 @@ asserting exact numbers.
 
 import aggregate
 import make_tables
-from test_aggregate import _row
+from test_aggregate import _hrow, _row
 
 
 def _rows():
@@ -45,6 +45,26 @@ def test_tables_well_formed():
     assert t2_body.count(r"\\") == 3
     # T3 lists every run
     assert t3.count(r"\\") >= len(rows)
+
+
+def test_t6_halting_and_t7_ood():
+    # T6 from split="halting" rows; T7 from include_ood selective rows (Phase 4l).
+    hrows = [_hrow(s, 0.55, 0.02, task="arithmetic") for s in range(5)]
+    t6 = make_tables._t6(hrows)
+    assert r"\label{tab:halting}" in t6
+    assert t6.split(r"\midrule")[1].split(r"\bottomrule")[0].count(r"\\") == 1   # one task row
+    assert "arithmetic" in t6
+
+    ood_rows = [_row(12, s, 0.09, 0.07, baseline_delta=(0.05, 0.03),
+                     ood=(0.4, 0.5, 0.8, False)) for s in range(5)]
+    t7 = make_tables._t7(ood_rows)
+    assert r"\label{tab:oodstress}" in t7
+    assert "arithmetic" in t7 and r"\toprule" in t7
+
+    # both are gated: absent data -> empty body
+    assert make_tables._t6([]).split(r"\midrule")[1].split(r"\bottomrule")[0].strip() == ""
+    no_ood = [_row(12, s, 0.09, 0.07, baseline_delta=(0.05, 0.03)) for s in range(3)]
+    assert make_tables._t7(no_ood).split(r"\midrule")[1].split(r"\bottomrule")[0].strip() == ""
 
 
 def test_delta_pm_formatting():

@@ -41,17 +41,30 @@ raw energy). The win over energy comes from the \emph{non-energy} geometry, not 
 energy statistics the vector happens to contain. Figure~\ref{fig:f5} shows the corresponding
 per-feature separation.
 
-\paragraph{The guarantees behave as designed (Figs.~\ref{fig:f3}--\ref{fig:f6}).} In-distribution,
-Learn-then-Test selective prediction is valid: achieved selective risk sits on or below the nominal
-target across the $\alpha$-sweep (Fig.~\ref{fig:f3}). Conformal-Risk-Control adaptive halting
-(Fig.~\ref{fig:f4}) chooses a basin-agreement threshold that uses $42\%$ of the step budget---$58\%$
-compute saved---at a halting risk of $0.9\% \le \alpha{=}10\%$ with no end-task accuracy loss, and
-the halting risk was empirically monotone in the threshold (CRC's assumption). Under distribution
-shift the guarantee \emph{breaks by design} (Fig.~\ref{fig:f6}): the ID-calibrated threshold, applied
-to OOD, achieves $76\%$ selective risk against a $10\%$ target---exchangeability is violated, so the
-certificate is void. This is precisely the argument for abstention / shift detection in critical
-systems: the guarantees are marginal under exchangeability, and we show them fail loudly when it
-does not hold.
+\paragraph{The guarantees behave as designed, over 5 seeds (Figs.~\ref{fig:f3}--\ref{fig:f6},
+Tables~\ref{tab:halting}--\ref{tab:oodstress}).} In-distribution, Learn-then-Test selective
+prediction is valid: achieved selective risk sits on or below the nominal target across the
+$\alpha$-sweep (Fig.~\ref{fig:f3}). Conformal-Risk-Control adaptive halting
+(Fig.~\ref{fig:f4}, Table~\ref{tab:halting}) chooses a basin-agreement threshold that saves
+$57.1\%\pm1.7\%$ of the step budget on arithmetic at a halting risk of $1.2\% \le \alpha{=}10\%$
+(within budget $5/5$ seeds, no end-task accuracy loss), and $80.8\%\pm5.2\%$ on graph at risk
+$6.5\% \le 10\%$ ($5/5$)---the halting guarantee holds on both tasks across seeds, and the halting
+risk was empirically monotone in the threshold (CRC's assumption). Under distribution shift the
+selective guarantee \emph{breaks by design} over 5 seeds (Fig.~\ref{fig:f6},
+Table~\ref{tab:oodstress}): the ID-calibrated threshold applied to OOD achieves $76.4\%$ selective
+risk against a $10\%$ target on arithmetic ($0/5$ within budget) and $16.8\%$ on graph
+($4/5$)---exchangeability is violated, so the certificate is void. This is precisely the argument for
+abstention / shift detection in critical systems: the guarantees are marginal under exchangeability,
+and we show them fail loudly when it does not hold.
+
+On graph, the LTT abstention certifies almost no coverage at $\alpha{=}0.1$ (mean $1.1\%$ over 5
+seeds at the full $n_\text{calib}=1500$ fold): the task's ${\sim}30\%$ base error leaves no confident
+slice with true error below $10\%$. This is an operating-point effect, not a broken certificate---%
+validity holds at every $\alpha$ (achieved risk $\le$ target), and relaxing the budget certifies real
+coverage: $22.5\%$ at $\alpha{=}0.15$ (achieved risk $0.078$) and $48.5\%$ at $\alpha{=}0.20$
+($0.157$), versus arithmetic's $74\%$ at $\alpha{=}0.10$. The honest reading is that a harder task's
+higher error floor pushes the usable operating point to a larger $\alpha$, not that the guarantee
+fails.
 
 \paragraph{Key caveat: geometry does not beat softmax confidence (Table~\ref{tab:main}).} When the
 baseline set is widened from scalar energy to a standard softmax-confidence score (MSP,
@@ -113,6 +126,8 @@ does not help on graph---the graph redundancy is a property of the task, not of 
 well-calibrated softmax already captures what even the richest descent geometry would add.
 
 \input{tables/T1_main}
+\input{tables/T6_halting}
+\input{tables/T7_ood_stress}
 \input{tables/T4_complementarity}
 \input{tables/T5_richer_geometry}
 \input{tables/T2b_feature_ablation}
@@ -138,8 +153,8 @@ ledger; Table~\ref{tab:repro} (appendix) lists seeds, configuration hashes, and 
   \includegraphics[width=0.48\linewidth]{F3_coverage_validity.png}\hfill
   \includegraphics[width=0.48\linewidth]{F4_halting_pareto.png}
   \caption{\textbf{Left (F3):} LTT selective-risk validity---achieved risk on/below the diagonal.
-  \textbf{Right (F4):} CRC adaptive halting saves $\sim$58\% compute at a guaranteed risk with no
-  accuracy loss.}
+  \textbf{Right (F4):} CRC adaptive halting (arithmetic) saves ${\sim}57\%$ compute at a guaranteed
+  risk with no accuracy loss; the 5-seed numbers for both tasks are in Table~\ref{tab:halting}.}
   \label{fig:f3}\label{fig:f4}
 \end{figure}
 \begin{figure}[t]\centering

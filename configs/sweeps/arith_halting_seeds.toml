@@ -1,0 +1,9 @@
+# Phase 4l: 5-seed adaptive-halting (CRC) on arithmetic — the multi-seed version of the H1 headline
+# (~58% compute saved at halting risk <= alpha), which was single-seed. Uses run_halting_sweep.py
+# (each cell trains, CRC-calibrates, appends a split="halting" row). aggregate.aggregate_halting +
+# make_tables T6 summarise the compute-saved / halting-risk mean±std.
+[sweep]
+base = "configs/experiments/arithmetic_halting.toml"
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

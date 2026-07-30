@@ -45,26 +45,34 @@ _SCORE_STYLE = {
 
 
 def _selective_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Metrics of the headline ``split == 'selective'`` run for F2/F3 (raises if none).
+    """Metrics of the headline ``split == 'selective'`` run for F2/F3/F5/F6 (raises if none).
 
-    Prefers the full-fold run — largest ``n_test`` (E1), ties broken by ledger order — so the
-    single-run figures reflect the authoritative experiment, not whatever reduced-fold sweep cell
-    happened to land last in the ledger.
+    These are the arithmetic E1 figures by design (their captions name arithmetic), so we prefer
+    the arithmetic full-fold run — largest ``n_test``, ties broken by ledger order. Preferring
+    arithmetic matters since Phase 4l added full-fold (``n_test=1500``) graph rows that would
+    otherwise tie and flip the figures to graph. Falls back to the global run if no arithmetic row.
     """
     sel = [r for r in rows if r.get("split") == "selective"]
     if not sel:
         raise ValueError("no split='selective' ledger row; run experiments/run_experiment.py first")
+    arith = [r for r in sel if r.get("task") == "arithmetic"]
+    pool = arith or sel
     # largest n_test wins; ties broken toward the latest ledger row (freshest full-fold E1).
-    headline = max(enumerate(sel), key=lambda iv: (iv[1]["metrics"].get("n_test", 0), iv[0]))[1]
+    headline = max(enumerate(pool), key=lambda iv: (iv[1]["metrics"].get("n_test", 0), iv[0]))[1]
     return headline["metrics"]
 
 
 def _halting_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Metrics of the latest ``split == 'halting'`` run for F4 (raises if none)."""
+    """Metrics of the headline ``split == 'halting'`` run for F4 (raises if none).
+
+    F4 is the arithmetic halting Pareto by design, so prefer the latest arithmetic halting row;
+    Phase 4l added graph halting rows (appended later) that would otherwise flip F4 to graph.
+    """
     sel = [r for r in rows if r.get("split") == "halting"]
     if not sel:
         raise ValueError("no split='halting' ledger row; run experiments/run_halting.py first")
-    return sel[-1]["metrics"]
+    arith = [r for r in sel if r.get("task") == "arithmetic"]
+    return (arith or sel)[-1]["metrics"]
 
 
 def risk_coverage_curve(rows: list[dict[str, Any]], out_path: str) -> str:  # F2

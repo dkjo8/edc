@@ -32,7 +32,8 @@ Risk Control). On two structurally distinct reasoning tasks, landscape geometry 
 terminal energy used by Energy-Based Transformers as a nonconformity score (paired-bootstrap
 $\Delta$AURC CI excluding zero, $5/5$ seeds each), the advantage is caused by the restart geometry
 (it grows with the number of restarts; a single descent barely separates) and driven mainly by basin
-agreement, and halting saves ${\sim}58\%$ of inference compute at a guaranteed error budget. Against a stronger, standard softmax-confidence baseline (maximum softmax probability, temperature
+agreement, and adaptive halting saves $57\%$ (arithmetic) to $81\%$ (graph) of inference compute at a
+guaranteed error budget, holding within budget on both tasks across $5$ seeds. Against a stronger, standard softmax-confidence baseline (maximum softmax probability, temperature
 scaling, entropy), geometry only \emph{ties} (arithmetic) or \emph{loses} (graph) under a supervised
 basin-center reasoner---but when the reasoner is a genuinely learned, multi-basin landscape,
 geometry \emph{beats} softmax confidence on arithmetic ($4/5$ seeds). This does not generalize: on

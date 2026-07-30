@@ -93,6 +93,18 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
     dadd = [m["delta_aurc_geom_adds"] for m in ms] if has_add else []
     add_mean, add_std = _ms([d[0] for d in dadd]) if has_add else (float("nan"), float("nan"))
     add_ci = sum(1 for d in dadd if d[1] > 0.0)
+    # OOD stress (Phase 4l): the ID-calibrated threshold applied to the shifted fold. Only rows run
+    # with include_ood carry these; pre-4l / selective-sweep rows fall through (has_ood=False).
+    has_ood = all("ood_ltt" in m and "accuracy_ood" in m for m in ms)
+    _nan = (float("nan"), float("nan"))
+    if has_ood:
+        acc_ood = _ms([m["accuracy_ood"] for m in ms])
+        risk_ood = _ms([m["ood_ltt"]["selective_risk"] for m in ms])
+        cov_ood = _ms([m["ood_ltt"]["coverage"] for m in ms])
+        ood_within = sum(1 for m in ms if m["ood_ltt"].get("risk_within_budget"))
+    else:
+        acc_ood = risk_ood = cov_ood = _nan
+        ood_within = 0
     return {
         "task": rows_for_k[0].get("task"),
         "k_restarts": _k(rows_for_k[0]),
@@ -126,6 +138,12 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
         "ltt_coverage": _ms([m["ltt"]["coverage"] for m in ms]),
         "ltt_selective_risk": _ms([m["ltt"]["selective_risk"] for m in ms]),
         "ltt_abstain_rate": _ms([m["ltt"]["abstain_rate"] for m in ms]),
+        # OOD stress (Phase 4l); NaN + has_ood=False when the cell has no include_ood rows.
+        "has_ood": has_ood,
+        "accuracy_ood": acc_ood,
+        "ood_selective_risk": risk_ood,
+        "ood_coverage": cov_ood,
+        "seeds_ood_within_budget": ood_within,
     }
 
 
@@ -172,3 +190,60 @@ def headline_cell(rows: list[dict] | None = None, task: str | None = None,
         return (has_add, len(cell), max(r.get("timestamp", "") for r in cell))
 
     return aggregate_cell(max(cells, key=_key))
+
+
+def halting_rows(rows: list[dict] | None = None, task: str | None = None) -> list[dict]:
+    """Latest ``split=='halting'`` row per ``(config_hash, seed)``, optionally one ``task``.
+
+    The halting rows are excluded from ``selective_rows`` (different split); this is their
+    multi-seed counterpart for the adaptive-halting (CRC) guarantee (Phase 4l).
+    """
+    if rows is None:
+        rows = read_all()
+    latest: dict[tuple[str, int], dict] = {}
+    for r in rows:
+        if r.get("split") == "halting" and (task is None or r.get("task") == task):
+            latest[(r["config_hash"], r["seed"])] = r  # later rows win
+    return list(latest.values())
+
+
+def halting_tasks_present(rows: list[dict] | None = None) -> list[str]:
+    """Sorted distinct task names among halting rows."""
+    return sorted({r.get("task") for r in halting_rows(rows)} - {None})
+
+
+def aggregate_halting_cell(rows_for_task: list[dict]) -> dict:
+    """Aggregate per-seed halting rows into the multi-seed CRC verdict (compute saved + risk).
+
+    Dedups to the latest row per seed by timestamp — so a stale single-seed run under an older
+    config schema (e.g. the original Phase-4b H1 seed-0 row, whose config_hash has since drifted)
+    does not double-count against the current seed sweep.
+    """
+    by_seed: dict[int, dict] = {}
+    for r in sorted(rows_for_task, key=lambda r: r.get("timestamp", "")):
+        by_seed[r["seed"]] = r
+    rows_for_task = list(by_seed.values())
+    ms = [r["metrics"] for r in rows_for_task]
+    n = len(ms)
+    taus = [m["tau_hat"] for m in ms if m.get("tau_hat") is not None]
+    return {
+        "task": rows_for_task[0].get("task"),
+        "n_seeds": n,
+        "seeds": sorted(r["seed"] for r in rows_for_task),
+        "run_ids": [r["run_id"] for r in rows_for_task],
+        "alpha": ms[0].get("alpha"),
+        "tau_hat": _ms(taus) if taus else (float("nan"), float("nan")),
+        "n_tau_feasible": len(taus),
+        "compute_saved": _ms([m["compute_saved"] for m in ms]),
+        "halting_risk": _ms([m["halting_risk"] for m in ms]),
+        "full_accuracy": _ms([m["full_accuracy"] for m in ms]),
+        "accuracy_drop": _ms([m["accuracy_drop"] for m in ms]),
+        "seeds_within_budget": sum(1 for m in ms if m.get("risk_within_budget")),
+        "seeds_risk_monotone": sum(1 for m in ms if m.get("risk_monotone_in_tau")),
+    }
+
+
+def aggregate_halting(rows: list[dict] | None = None) -> dict[str, dict]:
+    """``{task: aggregate_halting_cell(...)}`` for every task with halting rows."""
+    return {t: aggregate_halting_cell(halting_rows(rows, task=t))
+            for t in halting_tasks_present(rows)}
