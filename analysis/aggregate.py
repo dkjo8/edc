@@ -105,6 +105,18 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
     else:
         acc_ood = risk_ood = cov_ood = _nan
         ood_within = 0
+    # Deep-ensemble comparison (Phase 4m): geometry vs an M-model ensemble; pre-4m rows lack it.
+    has_ensemble = all("delta_aurc_vs_best_ensemble" in m for m in ms)
+    if has_ensemble:
+        den = [m["delta_aurc_vs_best_ensemble"] for m in ms]
+        d_ens = _ms([d[0] for d in den])
+        ens_beat = sum(1 for d in den if d[1] > 0.0)              # geometry beats ensemble (lo>0)
+        aurc_ens = _ms([m["aurc"][m["best_ensemble"]] for m in ms])
+        acc_ens = _ms([m["ensemble_accuracy"] for m in ms])
+        ens_M = int(ms[0].get("ensemble_size", 0))
+    else:
+        d_ens = aurc_ens = acc_ens = _nan
+        ens_beat = ens_M = 0
     return {
         "task": rows_for_k[0].get("task"),
         "k_restarts": _k(rows_for_k[0]),
@@ -144,6 +156,13 @@ def aggregate_cell(rows_for_k: list[dict]) -> dict:
         "ood_selective_risk": risk_ood,
         "ood_coverage": cov_ood,
         "seeds_ood_within_budget": ood_within,
+        # Deep-ensemble comparison (Phase 4m); NaN + has_ensemble=False when no ensemble rows.
+        "has_ensemble": has_ensemble,
+        "ensemble_size": ens_M,
+        "delta_aurc_vs_ensemble": d_ens,
+        "seeds_beat_ensemble": ens_beat,
+        "aurc_ensemble": aurc_ens,
+        "ensemble_accuracy": acc_ens,
     }
 
 
@@ -154,7 +173,8 @@ def aggregate_by_k(rows: list[dict] | None = None, task: str | None = None,
 
 
 def headline_cell(rows: list[dict] | None = None, task: str | None = None,
-                  objective: str = "basin_center", feature_set: str | None = "base") -> dict:
+                  objective: str = "basin_center", feature_set: str | None = "base",
+                  prefer: str | None = None) -> dict:
     """Aggregate the headline seed-sweep for one task + reasoner (largest single-config seed group).
 
     T1 uses the canonical ``basin_center`` reasoner (pass ``objective="ired"`` to report the learned
@@ -163,6 +183,11 @@ def headline_cell(rows: list[dict] | None = None, task: str | None = None,
     rows carrying the Phase-4e baseline field, then picks the config group (K, n_test) with the most
     seeds — the multi-seed sweep — so the cell is not polluted by mixing fold sizes / reasoners that
     happen to share a K value.
+
+    ``prefer`` (a metrics key) biases selection toward the cell whose rows all carry that key — e.g.
+    ``prefer="ood_ltt"`` for the OOD table or ``prefer="delta_aurc_vs_best_ensemble"`` for the
+    ensemble table, so a newer field-less cell (an ensemble sweep has no OOD, and vice-versa) does
+    not shadow the cell the caller actually needs.
     """
     sel = (selective_rows(rows, task=task, objective=objective, feature_set=feature_set)
            or selective_rows(rows, task=task, feature_set=feature_set))
@@ -170,9 +195,15 @@ def headline_cell(rows: list[dict] | None = None, task: str | None = None,
     pool = with_bl or sel
     # Group by the experiment config *excluding seed* — (K, n_test) separates a seed-sweep (many
     # seeds, one fold size) from one-off full-fold runs at the same K.
+    # Group by (K, n_test) AND which distinct-experiment fields are present, so a run that shares
+    # (K, n_test) with another but carries different metrics (an OOD run vs an ensemble run) forms
+    # its OWN cell instead of being deduped away by whichever ran last; `prefer` picks among cells.
     groups: dict[tuple, list[dict]] = {}
     for r in pool:
-        groups.setdefault((_k(r), r["metrics"].get("n_test")), []).append(r)
+        m = r["metrics"]
+        sig = (_k(r), m.get("n_test"),
+               "ood_ltt" in m, "delta_aurc_vs_best_ensemble" in m)
+        groups.setdefault(sig, []).append(r)
 
     def _dedup_by_seed(group: list[dict]) -> list[dict]:
         # A config re-run after new config fields were added gets a fresh config_hash, so old + new
@@ -186,8 +217,9 @@ def headline_cell(rows: list[dict] | None = None, task: str | None = None,
     # Prefer a cell whose rows carry the newest complementarity metric, then more seeds, then most
     # recent — so the headline is the latest full seed-sweep, not a stale or partial one.
     def _key(cell: list[dict]) -> tuple:
+        has_pref = bool(prefer) and all(prefer in r["metrics"] for r in cell)
         has_add = all("delta_aurc_geom_adds" in r["metrics"] for r in cell)
-        return (has_add, len(cell), max(r.get("timestamp", "") for r in cell))
+        return (has_pref, has_add, len(cell), max(r.get("timestamp", "") for r in cell))
 
     return aggregate_cell(max(cells, key=_key))
 

@@ -261,9 +261,12 @@ def ood_stress(rows: list[dict[str, Any]], out_path: str) -> str:  # F6
     """
     import matplotlib.pyplot as plt
 
-    v = _selective_row(rows).get("ood_validity")
-    if v is None:
-        raise ValueError("no ood_validity on the selective row; re-run with include_ood=True")
+    # Only rows that actually carry OOD data are eligible — a newer include_ood=False sweep (e.g. an
+    # ensemble run) must not shadow the OOD headline row.
+    ood_rows = [r for r in rows if r.get("metrics", {}).get("ood_validity") is not None]
+    if not ood_rows:
+        raise ValueError("no ood_validity on any selective row; re-run with include_ood=True")
+    v = _selective_row(ood_rows)["ood_validity"]
     use_style()
     lim = max(v["target"]) * 1.1
     fig, ax = plt.subplots(figsize=(4.8, 4.2))

@@ -2,6 +2,27 @@
 
 Short, dated, append-only. Newest first.
 
+## 2026-08-03 — Phase 4m: deep-ensemble baseline (the last deferred baseline)
+**Finding/decision:** added a deep ensemble of M=5 independently-trained models (`baselines.ensemble_scores`
+= mean-softmax MSP/entropy + BALD mutual-information; `seeding.member_seeds`; opt-in
+`[eval] ensemble_size`, member 0 = primary so 4 extra models/cell). **Result (T8):** geometry beats
+the ensemble on selective risk **only on arith-IRED** (5/5, ΔAURC +0.017) — *despite the ensemble
+being more accurate* (0.92 vs 0.84); single-model geometry ranks its own errors better than the
+ensemble's averaged uncertainty, at 1/5 the compute. Elsewhere the ensemble wins/ties (the same cells
+where geometry lost/tied softmax). So the result **mirrors the softmax finding** and rebuts "geometry
+is just cheap ensembling" exactly where the positive claim lives. **Design choices:** (a) reported
+**separately** (`delta_aurc_vs_best_ensemble`/T8), NOT folded into the same-compute `baseline_names`/T1,
+because the ensemble is M× the compute — conflating them would mislead; (b) paired on the primary
+correct mask (member 0 = primary), like the softmax baselines; (c) deterministic — member seeds from
+a fresh `edc.seeding` substream, folds sampled from the base seed so all members see identical inputs.
+**Bug fixed:** `headline_cell` grouped only by (K, n_test), so an OOD run and an ensemble run sharing
+(K=12, n_test=1500) merged and the newer (ensemble, no OOD) deduped the OOD rows away — breaking T7.
+Fixed by grouping cells by field-presence too (`ood_ltt`/`delta_aurc_vs_best_ensemble` in metrics) +
+a `prefer` bias so each table selects the cell carrying its field; `plotting._selective_row`/
+`_halting_row`/`ood_stress` prefer arithmetic / OOD-carrying rows so ensemble rows don't flip the
+figures. **Why record it:** completes the baseline set (the #1 reviewer ask) and shows geometry beats
+even a costlier ensemble where it matters. **Reversible?** Opt-in; default ensemble_size=1 unchanged.
+
 ## 2026-07-30 — Phase 4l: certificates on firm footing (multi-seed guarantees + graph certification)
 **Finding/decision:** put the project's core contribution — the distribution-free certificates — on a
 5-seed footing. (1) **Halting:** new `experiments/run_halting_sweep.py` + `aggregate.halting_rows`/
@@ -118,8 +139,10 @@ task. **Why:** "geometry beats energy" is vulnerable to "energy is a weak baseli
 geometry to beat a standard softmax confidence too. Mean-logit read-off gives one temperature-
 scalable confidence vector per input; these are cheap (decoder logits already exist). **Deferred:**
 MC-dropout and deep ensembles (need model/dropout changes or multiple trainings; the K-restart
-best-of-N already supplies ensemble-like diversity). **Honesty:** the run records the verdict vs the
-best baseline whatever it is; a tie with MSP would be reported, not hidden. **Reversible?** Yes —
+best-of-N already supplies ensemble-like diversity). [**Update 2026-08-03:** the deep ensemble is no
+longer deferred — added in Phase 4m (T8); MC-dropout remains deferred.] **Honesty:** the run records
+the verdict vs the best baseline whatever it is; a tie with MSP would be reported, not hidden.
+**Reversible?** Yes —
 additive scores + metric fields; aggregation falls back to the energy ΔAURC for pre-4e rows.
 
 ## 2026-07-26 — Phase 4d: second task (graph shortest-path) + task-aware aggregation

@@ -80,6 +80,10 @@ class EvalCfg:
     # Phase 4k: opt-in richer geometry (full Hessian spectrum + mode-connectivity barriers)
     # appended after the base 14 features. Default False keeps the canonical 14-feature vector.
     richer_geometry: bool = False
+    # Phase 4m: opt-in deep-ensemble baseline of M independently-trained models (reusing the primary
+    # as member 0). Default 1 = off. M > 1 costs ~M× training/inference — a separate, caveated
+    # comparison (delta_aurc_vs_best_ensemble / T8), NOT folded into the same-compute baselines.
+    ensemble_size: int = 1
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,10 @@
+# Phase 4m (secondary): 5-seed graph-IRED with a deep ensemble of M=5 models. Heaviest cell set
+# (M=5 IRED graph models, hidden 256 / epochs 110, per seed). Run last / on Modal if CPU-bound.
+[sweep]
+base = "configs/experiments/graph_ired.toml"
+
+[sweep.override]
+"eval.ensemble_size" = 5
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

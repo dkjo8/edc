@@ -229,7 +229,7 @@ def _t7(rows: list[dict]) -> str:
     """
     body, all_ids = [], []
     for task in tasks_present(rows):
-        a = headline_cell(rows, task=task)
+        a = headline_cell(rows, task=task, prefer="ood_ltt")
         if not a.get("has_ood"):
             continue
         body.append([
@@ -246,6 +246,38 @@ def _t7(rows: list[dict]) -> str:
         "under shift (OOD risk exceeds the budget), motivating abstention; ``seeds OOD ok`` counts "
         "seeds whose OOD risk still stays within budget.",
         "tab:oodstress", f"run_ids={all_ids}")
+
+
+def _t8(rows: list[dict]) -> str:
+    """Deep-ensemble baseline (Phase 4m): does single-model geometry beat an M-model ensemble?
+
+    One row per (task, reasoner) with an ensemble run. ``geom`` and ``ens`` AURC are the
+    selective-risk areas (lower better); ΔAURC(geom \\emph{beats} ens) is the paired
+    geometry−ensemble gap on the deployed model's correctness (positive with CI>0 => geometry
+    wins). The ensemble costs M× the compute, so tying/beating it with 1 model is the point.
+    """
+    body, all_ids = [], []
+    for task in tasks_present(rows):
+        for o in sorted({objective_of(r) for r in selective_rows(rows, task=task)}):
+            a = headline_cell(rows, task=task, objective=o, prefer="delta_aurc_vs_best_ensemble")
+            if not a.get("has_ensemble"):
+                continue
+            body.append([
+                _esc(task), _esc(o), str(a["ensemble_size"]), _pm(a["aurc_geometry"]),
+                _pm(a["aurc_ensemble"]), _pm(a["delta_aurc_vs_ensemble"]),
+                f"{a['seeds_beat_ensemble']}/{a['n_seeds']}",
+            ])
+            all_ids += a["run_ids"]
+    header = ["task", "reasoner", "$M$", "AURC geom", "AURC ens", r"$\Delta$AURC (geom$-$ens)",
+              "seeds geom wins"]
+    return _tabular(
+        header, body, "llccccc",
+        "Deep-ensemble baseline (mean$\\pm$std over seeds): single-model descent geometry vs an "
+        "$M$-model deep ensemble (mean-softmax MSP / entropy / mutual-information), scored on the "
+        "deployed model's correctness. $\\Delta$AURC $>0$ with the CI clearing 0 (``seeds geom "
+        "wins'') means 1-model geometry gives lower selective risk than the ensemble, which costs "
+        "$M\\times$ the training and inference.",
+        "tab:ensemble", f"run_ids={all_ids}")
 
 
 def _t3(rows: list[dict]) -> str:
@@ -296,6 +328,9 @@ def main() -> int:
     t7 = _t7(rows)                                  # only when include_ood rows exist
     if _has_body(t7):
         outputs["T7_ood_stress.tex"] = t7
+    t8 = _t8(rows)                                  # only when deep-ensemble rows exist
+    if _has_body(t8):
+        outputs["T8_ensemble.tex"] = t8
     for name, tex in outputs.items():
         (TABLE_DIR / name).write_text(tex)
         print(f"[tables] wrote {TABLE_DIR / name}")

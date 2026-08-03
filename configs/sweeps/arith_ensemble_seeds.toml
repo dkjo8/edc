@@ -1,0 +1,11 @@
+# Phase 4m: 5-seed arithmetic (basin-center) with a deep ensemble of M=5 models. Tests whether
+# single-model descent geometry beats/ties an ensemble that costs 5x the training+inference.
+# Reuses the primary as member 0, so 4 extra models are trained per cell.
+[sweep]
+base = "configs/experiments/arithmetic_selective.toml"
+
+[sweep.override]
+"eval.ensemble_size" = 5
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

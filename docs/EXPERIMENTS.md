@@ -278,6 +278,33 @@ coverage" was an α=0.1 operating-point artifact, not a broken certificate. Grap
 coverage at α=0.15** and **48.5% at α=0.20**, versus arithmetic's 74% at α=0.10 — the honest cost of
 a harder task's higher error floor, not a failure. (F3 shows the arithmetic α-sweep on the diagonal.)
 
+### Deep-ensemble baseline — is geometry just cheap ensembling? (Phase 4m → T8)
+
+The last deferred baseline: a **deep ensemble of M=5 independently-trained models** (opt-in `[eval]
+ensemble_size`; member 0 = the primary, so 4 extra models per cell; seeds drawn through
+`edc.seeding`; scored on the deployed model's correctness like the softmax baselines). Reported
+*separately* from the same-compute baselines (T8, `delta_aurc_vs_best_ensemble`) because it costs
+**M× the training + inference** — folding it into T1 would conflate a 5-model baseline with same-cost
+softmax/energy. AURC lower = better.
+
+| task | reasoner | AURC geom | AURC ensemble | ΔAURC (geom−ens) | geom wins | acc geom / ens |
+|------|----------|-----------|---------------|------------------|-----------|----------------|
+| arithmetic | basin-center | $0.059$ | $0.056$ | $-0.003\pm0.012$ | $1/5$ | $0.83 / 0.94$ |
+| arithmetic | **IRED** | $\mathbf{0.028}$ | $0.045$ | $\mathbf{+0.017\pm0.019}$ | **$5/5$** | $0.84 / 0.92$ |
+| graph | basin-center | $0.159$ | $0.115$ | $-0.045\pm0.006$ | $0/5$ | $0.70 / 0.81$ |
+| graph | **IRED** | $0.056$ | $0.045$ | $-0.010\pm0.010$ | $0/5$ | $0.83 / 0.86$ |
+
+**Verdict — geometry beats the deep ensemble exactly where it beats softmax: arith-IRED.** There,
+**single-model descent geometry gives lower selective risk than a 5-model deep ensemble on all 5
+seeds** ($+0.017$) — and it does so *despite the ensemble being more accurate* ($0.92$ vs $0.84$):
+geometry ranks its own model's errors better than the ensemble's averaged uncertainty does, at
+$1/5$ the compute. Everywhere else the ensemble wins or ties — the same cells where geometry already
+lost/tied softmax (basin-center both tasks; graph-IRED). So the deep-ensemble result **mirrors the
+softmax result**: under a learned landscape on arithmetic, descent geometry is the best reliability
+signal, beating *both* a well-calibrated softmax and a $5\times$-costlier deep ensemble; elsewhere it
+is honestly bettered by them. This rebuts "geometry is just cheap ensembling" precisely where the
+positive claim lives, and reports the bound plainly elsewhere.
+
 ## Operating regime
 
 Tune each task's difficulty so base accuracy is **70–85%**. Fully-solved tasks saturate AURC and

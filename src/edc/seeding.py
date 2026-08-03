@@ -50,3 +50,16 @@ def numpy_rng(seed: int, *stream: int) -> np.random.Generator:
 def fold(key: jax.Array, i: int) -> jax.Array:
     """Deterministically derive a child key indexed by ``i``."""
     return jax.random.fold_in(key, int(i))
+
+
+def member_seeds(seed: int, m: int) -> np.ndarray:
+    """``m`` distinct integer seeds for deep-ensemble members, derived from ``seed``. [Phase 4m]
+
+    Drawn from a dedicated substream (``stream 7``) so the whole ensemble stays a pure function of
+    the run ``seed`` (invariant 4) and two different base seeds get disjoint member sets (no leakage
+    of one seed's members into another's ensemble). Each returned seed is fed to ``train`` as a
+    fresh ``cfg.run.seed`` to give an independently-initialised, independently-sampled model.
+    """
+    if m <= 0:
+        return np.empty(0, dtype=np.int64)
+    return numpy_rng(seed, 7).integers(0, 2**31 - 1, size=int(m))

@@ -46,6 +46,43 @@ def test_include_ood_flag_toggles_ood_metrics():
     assert m["feature_set"] == "base"
     assert not any(n.startswith(("spectrum/", "connect/")) for n in m["feature_names"])
 
+    # no ensemble by default (ensemble_size == 1)
+    assert "delta_aurc_vs_best_ensemble" not in m
+    assert not ({"ens_msp", "ens_entropy", "ens_disagreement"} & set(m["aurc"]))
+
+
+def test_deep_ensemble_baseline_wires_in():
+    from dataclasses import replace
+
+    cfg = load_config("configs/smoke.toml")
+    cfg = replace(cfg, eval=replace(cfg.eval, ensemble_size=2))
+    task = build_task(cfg.run.task)
+    m = evaluate(cfg, task, include_ood=False)
+
+    # Phase 4m: ensemble scores get AURCs and a separate (not folded into baselines) comparison.
+    assert {"ens_msp", "ens_entropy", "ens_disagreement"} <= set(m["aurc"])
+    assert m["ensemble_size"] == 2
+    assert m["best_ensemble"] in ("ens_msp", "ens_entropy", "ens_disagreement")
+    de, loe, hie = m["delta_aurc_vs_best_ensemble"]
+    assert loe <= de <= hie
+    assert isinstance(m["geometry_beats_ensemble"], bool)
+    assert 0.0 <= m["ensemble_accuracy"] <= 1.0
+    # the same-compute baseline set is untouched (ensemble reported separately)
+    assert m["best_baseline"] in ("energy_min", "energy_mean", "energy_std",
+                                  "msp", "temp_msp", "entropy")
+
+
+def test_deep_ensemble_is_deterministic():
+    from dataclasses import replace
+
+    cfg = load_config("configs/smoke.toml")
+    cfg = replace(cfg, eval=replace(cfg.eval, ensemble_size=2))
+    task = build_task(cfg.run.task)
+    m1 = evaluate(cfg, task, include_ood=False)
+    m2 = evaluate(cfg, task, include_ood=False)
+    assert m1["aurc"]["ens_msp"] == m2["aurc"]["ens_msp"]           # same seed -> identical
+    assert m1["delta_aurc_vs_best_ensemble"] == m2["delta_aurc_vs_best_ensemble"]
+
 
 def test_richer_geometry_appends_groups_and_tags_feature_set():
     from dataclasses import replace

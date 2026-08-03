@@ -1,0 +1,11 @@
+# Phase 4m THE DECISIVE CELL: 5-seed arithmetic-IRED with a deep ensemble of M=5 models. This is the
+# one cell where geometry already beats softmax (4/5), so "does a deep ensemble beat geometry here?"
+# is the crux. Heavy: M=5 IRED models (annealed 200-step training) per seed.
+[sweep]
+base = "configs/experiments/arithmetic_ired.toml"
+
+[sweep.override]
+"eval.ensemble_size" = 5
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]
