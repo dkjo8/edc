@@ -13,6 +13,8 @@ Plain NumPy over JAX arrays pulled to host (invariant 1): the only JAX is inside
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -23,7 +25,7 @@ from edc.conformal.selective import ABSTAIN, selective_predict
 from edc.eval import baselines, metrics
 from edc.geometry.features import geometry_features
 from edc.inference import restarts
-from edc.seeding import numpy_rng, root_key
+from edc.seeding import member_seeds, numpy_rng, root_key
 from edc.train.train_ebm import train
 
 # alpha levels swept for the coverage-validity figure (F3): achieved selective risk must sit
@@ -32,8 +34,14 @@ _ALPHA_GRID = (0.02, 0.05, 0.1, 0.15, 0.2, 0.3)
 _COVERAGE_GRID = np.linspace(0.02, 1.0, 50)  # F2 risk-coverage sampling grid
 
 
-def _fold(fns, params, cfg, task, split: str, data_stream: int, key) -> dict:
-    """Run inference on one data fold and return its geometry features + baselines + correctness."""
+def _fold(fns, params, cfg, task, split: str, data_stream: int, key,
+          extra_members=None) -> dict:
+    """Run inference on one data fold and return its geometry features + baselines + correctness.
+
+    ``extra_members`` (Phase 4m): additional trained param sets. When given, each is run on
+    the **same** ``batch.x`` with the **same** ``k_solve`` as the primary, so the deep ensemble is
+    scored on identical inputs; ensemble nonconformity scores are added to the fold dict.
+    """
     rng = numpy_rng(cfg.run.seed, 20, data_stream)
     n = cfg.conformal.n_calib if data_stream == 1 else cfg.eval.n_eval
     batch = task.sample(rng, n, split=split)
@@ -47,7 +55,7 @@ def _fold(fns, params, cfg, task, split: str, data_stream: int, key) -> dict:
     correct = np.asarray(task.evaluate(np.asarray(pred), batch.y)).astype(bool)
 
     terminal = np.asarray(traj.terminal_energy)  # (B, K)
-    return {
+    out = {
         "features": np.asarray(feats),
         "names": names,
         "correct": correct,
@@ -62,6 +70,18 @@ def _fold(fns, params, cfg, task, split: str, data_stream: int, key) -> dict:
         "mean_logits": np.asarray(traj.logits).mean(axis=1),   # (B, C)
         "rho": np.asarray(feats)[:, names.index("basin/rho")],
     }
+    if extra_members:
+        # Deep ensemble: member 0 is the primary; run each extra member on the identical inputs.
+        member_logits = [out["mean_logits"]]
+        for mp in extra_members:
+            m_traj = restarts.solve(fns, mp, jnp.asarray(batch.x), cfg, k_solve)
+            member_logits.append(np.asarray(m_traj.logits).mean(axis=1))   # (B, C)
+        es = baselines.ensemble_scores(np.stack(member_logits, axis=0))    # (M, B, C)
+        out["ens_msp"] = es["ens_msp"]
+        out["ens_entropy"] = es["ens_entropy"]
+        out["ens_disagreement"] = es["ens_disagreement"]
+        out["ens_accuracy"] = float((es["ens_pred"] == out["y"]).mean())
+    return out
 
 
 def _resample_curve(scores, correct) -> dict:
@@ -136,12 +156,21 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
     """
     params, fns, history = train(cfg, task)
 
+    # Deep-ensemble baseline (Phase 4m): train M-1 extra members (member 0 = the primary), each on a
+    # distinct seed drawn through edc.seeding. All members share the primary's architecture, so they
+    # can be run on the same fold inputs. Off by default (ensemble_size == 1 -> no extra training).
+    M = int(getattr(cfg.eval, "ensemble_size", 1))
+    extra_members = None
+    if M > 1:
+        extra_members = [train(replace(cfg, run=replace(cfg.run, seed=int(s))), task)[0]
+                         for s in member_seeds(cfg.run.seed, M - 1)]
+
     key = root_key(cfg.run.seed)
     k_fit, k_cal, k_test, k_ood = jax.random.split(key, 4)
-    fit = _fold(fns, params, cfg, task, "id", 0, k_fit)
-    cal = _fold(fns, params, cfg, task, "id", 1, k_cal)
-    test = _fold(fns, params, cfg, task, "id", 2, k_test)
-    ood = _fold(fns, params, cfg, task, "ood", 3, k_ood) if include_ood else None
+    fit = _fold(fns, params, cfg, task, "id", 0, k_fit, extra_members)
+    cal = _fold(fns, params, cfg, task, "id", 1, k_cal, extra_members)
+    test = _fold(fns, params, cfg, task, "id", 2, k_test, extra_members)
+    ood = _fold(fns, params, cfg, task, "ood", 3, k_ood, extra_members) if include_ood else None
 
     # --- Fit geometry mapper + temperature on the FIT fold only (invariant 7) ------------------
     mapper = nc.fit_mapper(fit["features"], fit["correct"])
@@ -165,7 +194,7 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
 
     def scores_for(fold: dict) -> dict:
         """All nonconformity scores on a fold. Low = confident; answer iff score <= threshold."""
-        return {
+        s = {
             "geometry": nc.score(mapper, fold["features"]),
             "rho_basin": nc.rho_basin_score(fold["rho"]),
             "energy_min": fold["energy_min"],
@@ -179,6 +208,11 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
             "softmax_learned": nc.score(softmax_mapper, _softmax_feats(fold)),
             "geom_softmax": nc.score(combined_mapper, _combined_feats(fold)),
         }
+        if "ens_msp" in fold:            # deep-ensemble baseline (Phase 4m), only when M > 1
+            s["ens_msp"] = fold["ens_msp"]
+            s["ens_entropy"] = fold["ens_entropy"]
+            s["ens_disagreement"] = fold["ens_disagreement"]
+        return s
 
     test_scores = scores_for(test)
     cal_scores = scores_for(cal)
@@ -207,6 +241,23 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
     d_add, lo_add, hi_add = metrics.paired_bootstrap_delta_aurc(
         test_scores["softmax_learned"], test_scores["geom_softmax"], correct, n_boot, cfg.run.seed)
     geometry_adds_over_softmax = bool(d_add > 0 and lo_add > 0)
+
+    # Deep-ensemble comparison (Phase 4m): reported SEPARATELY from the same-compute baselines,
+    # because the ensemble costs M× the training/inference. Paired on the primary correct mask
+    # (member 0 = primary), exactly as the softmax baselines rank the deployed model's correctness.
+    ensemble_block = {}
+    if M > 1 and "ens_msp" in test_scores:
+        ensemble_names = ("ens_msp", "ens_entropy", "ens_disagreement")
+        best_ensemble = min(ensemble_names, key=lambda k: aurc[k])
+        d_en, lo_en, hi_en = metrics.paired_bootstrap_delta_aurc(
+            test_scores[best_ensemble], test_scores["geometry"], correct, n_boot, cfg.run.seed)
+        ensemble_block = {
+            "ensemble_size": M,
+            "best_ensemble": best_ensemble,
+            "delta_aurc_vs_best_ensemble": [d_en, lo_en, hi_en],
+            "geometry_beats_ensemble": bool(d_en > 0 and lo_en > 0),
+            "ensemble_accuracy": test["ens_accuracy"],
+        }
 
     # --- LTT abstention guarantee at the configured (alpha, delta) ------------------------------
     alpha, delta = cfg.conformal.alpha, cfg.conformal.delta
@@ -266,6 +317,7 @@ def evaluate(cfg, task, include_ood: bool = True) -> dict:
         "feature_ablation": _feature_ablation(
             fit["features"], fit["correct"], test["features"], correct, test["names"]),
         "ece_geometry": metrics.ece(1.0 - test_scores["geometry"], correct),
+        **ensemble_block,   # Phase 4m: present only when ensemble_size > 1
     }
     if include_ood:
         result["accuracy_ood"] = ood["accuracy"]

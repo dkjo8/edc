@@ -63,3 +63,36 @@ def fit_temperature(mean_logits_fit: np.ndarray, y_fit: np.ndarray) -> float:
 def temp_msp_score(mean_logits: np.ndarray, temp: float) -> np.ndarray:
     """MSP after temperature scaling: ``1 - max softmax(logits / temp)``."""
     return 1.0 - softmax(np.asarray(mean_logits, dtype=float) / temp).max(axis=-1)
+
+
+def ensemble_scores(member_logits: np.ndarray) -> dict:
+    """Deep-ensemble nonconformity scores from ``M`` members' per-input logits. [Phase 4m]
+
+    ``member_logits`` is ``(M, B, C)`` — member ``m``'s mean-over-restarts decoder logits on the
+    (shared) fold inputs. The deep-ensemble predictive distribution is the mean of the members'
+    softmax probabilities. Returns nonconformity scores (low = confident):
+
+    * ``ens_msp`` — ``1 - max_c`` of the mean predictive probability.
+    * ``ens_entropy`` — predictive entropy of the mean probability (total uncertainty, nats).
+    * ``ens_disagreement`` — mutual information / BALD: entropy of the mean minus the mean of the
+      per-member entropies. This is the *epistemic* signal unique to an ensemble (>= 0; 0 when the
+      members agree) — the cross-model disagreement a single model's softmax cannot express.
+    * ``ens_pred`` — argmax of the mean probability (the ensemble's own prediction; context only).
+    """
+    z = np.asarray(member_logits, dtype=float)                 # (M, B, C)
+    probs = softmax(z)                                         # (M, B, C) row-wise over C
+    mean_prob = probs.mean(axis=0)                             # (B, C)
+
+    def _entropy(p):
+        with np.errstate(divide="ignore", invalid="ignore"):
+            logp = np.where(p > 0, np.log(p), 0.0)
+        return -(p * logp).sum(axis=-1)
+
+    ent_mean = _entropy(mean_prob)                             # (B,) entropy of the mean
+    mean_ent = _entropy(probs).mean(axis=0)                    # (B,) mean of per-member entropies
+    return {
+        "ens_msp": 1.0 - mean_prob.max(axis=-1),
+        "ens_entropy": ent_mean,
+        "ens_disagreement": np.maximum(ent_mean - mean_ent, 0.0),   # BALD; clip fp noise to >= 0
+        "ens_pred": mean_prob.argmax(axis=-1),
+    }

@@ -67,4 +67,12 @@ inference-time descent** into distribution-free reliability certificates. Read
   the "certifies zero" was an operating-point artifact of graph's ~30% error floor, not a broken
   certificate. Aggregation dedups halting rows by seed (drops the stale Phase-4b H1 config-hash row);
   `plotting._selective_row`/`_halting_row` prefer arithmetic so full-fold graph rows don't flip F2/F4/F6.
+- Phase 4m deep-ensemble baseline ✅ (T8): the last deferred baseline. Opt-in `[eval] ensemble_size`
+  (M independently-trained models, member 0 = primary; `baselines.ensemble_scores` mean-softmax
+  MSP/entropy + BALD; `seeding.member_seeds`). Reported SEPARATELY (`delta_aurc_vs_best_ensemble`,
+  not folded into T1) since it's M× compute. **Geometry beats a 5-model ensemble on selective risk
+  only on arith-IRED (5/5, +0.017) — despite the ensemble being more accurate (0.92 vs 0.84)**;
+  elsewhere the ensemble wins/ties (same cells geometry lost softmax). Mirrors the softmax finding;
+  rebuts "just cheap ensembling." Fixed a `headline_cell` bug (OOD vs ensemble cells sharing
+  (K,n_test) merged → grouped by field-presence + `prefer` bias; plotting prefers arithmetic/OOD rows).
 - Next: E3/E4 (a 3rd/4th task to characterize *when* geometry beats softmax) · Modal · scale-up.

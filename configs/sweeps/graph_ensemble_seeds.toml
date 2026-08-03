@@ -1,0 +1,9 @@
+# Phase 4m: 5-seed graph shortest-path (basin-center) with a deep ensemble of M=5 models.
+[sweep]
+base = "configs/experiments/graph_selective.toml"
+
+[sweep.override]
+"eval.ensemble_size" = 5
+
+[sweep.grid]
+"run.seed" = [0, 1, 2, 3, 4]

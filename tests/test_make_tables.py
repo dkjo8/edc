@@ -67,5 +67,18 @@ def test_t6_halting_and_t7_ood():
     assert make_tables._t7(no_ood).split(r"\midrule")[1].split(r"\bottomrule")[0].strip() == ""
 
 
+def test_t8_ensemble():
+    # T8 from deep-ensemble rows (Phase 4m); gated when absent.
+    rows = [_row(12, s, 0.09, 0.07, baseline_delta=(0.05, 0.03),
+                 ensemble=(0.02, 0.005, 0.10, 0.82, 5)) for s in range(5)]
+    t8 = make_tables._t8(rows)
+    assert r"\label{tab:ensemble}" in t8
+    assert t8.split(r"\midrule")[1].split(r"\bottomrule")[0].count(r"\\") == 1   # one cell row
+    assert "arithmetic" in t8
+
+    no_ens = [_row(12, s, 0.09, 0.07, baseline_delta=(0.05, 0.03)) for s in range(3)]
+    assert make_tables._t8(no_ens).split(r"\midrule")[1].split(r"\bottomrule")[0].strip() == ""
+
+
 def test_delta_pm_formatting():
     assert make_tables._pm((0.0736, 0.012)) == r"$0.074 \pm 0.012$"

@@ -7,7 +7,7 @@ import aggregate
 
 
 def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic", baseline_delta=None,
-         geom_adds=None, feature_set=None, ood=None):
+         geom_adds=None, feature_set=None, ood=None, ensemble=None):
     m = {
         "k_restarts": k, "accuracy_id": 0.8, "base_error": 0.2,
         "best_energy_baseline": "energy_min",
@@ -32,6 +32,13 @@ def _row(k, seed, delta, lo, geo=0.08, best=0.14, task="arithmetic", baseline_de
         m["ltt"]["selective_risk"] = 0.07                  # ID selective risk (already present)
         m["ood_ltt"] = {"selective_risk": risk_ood, "coverage": cov_ood,
                         "risk_within_budget": within}
+    if ensemble is not None:                               # Phase 4m fields (ensemble_size>1 rows)
+        d_ens, lo_ens, ens_aurc, ens_acc, ens_M = ensemble
+        m["ensemble_size"] = ens_M
+        m["best_ensemble"] = "ens_msp"
+        m["aurc"]["ens_msp"] = ens_aurc
+        m["delta_aurc_vs_best_ensemble"] = [d_ens, lo_ens, d_ens + 0.02]
+        m["ensemble_accuracy"] = ens_acc
     fs_tag = ""
     if feature_set is not None:                             # Phase 4k field (older rows omit it)
         m["feature_set"] = feature_set
@@ -180,6 +187,47 @@ def test_halting_aggregation():
     over = [_hrow(0, 0.3, 0.2, within=False, tau=None), *[_hrow(s, 0.5, 0.02) for s in range(1, 4)]]
     ao = aggregate.aggregate_halting_cell(over)
     assert ao["seeds_within_budget"] == 3 and ao["n_tau_feasible"] == 3
+
+
+def test_headline_prefer_picks_field_carrying_cell():
+    # A newer field-less cell must not shadow the cell the caller needs (the T7/T8 regression fix).
+    # Same (K, n_test) so they'd collide; the OOD cell is older, the ensemble cell newer.
+    ood = [_row(12, s, 0.09, 0.07, ood=(0.4, 0.5, 0.8, False)) for s in range(5)]
+    ens = [_row(12, s, 0.09, 0.07, ensemble=(0.02, 0.005, 0.10, 0.82, 5)) for s in range(5)]
+    for r in ood:
+        r["timestamp"] = "2026-01-01"
+        r["config_hash"] += "_ood"              # distinct experiments -> distinct config_hash
+    for r in ens:
+        r["timestamp"] = "2026-02-01"           # newer -> wins the default tiebreak
+        r["config_hash"] += "_ens"
+    rows = ood + ens
+    # default (no prefer) picks the newest cell (ensemble, no OOD)
+    assert aggregate.headline_cell(rows).get("has_ood") is False
+    # prefer="ood_ltt" recovers the OOD cell even though it is older
+    assert aggregate.headline_cell(rows, prefer="ood_ltt")["has_ood"] is True
+    ens_cell = aggregate.headline_cell(rows, prefer="delta_aurc_vs_best_ensemble")
+    assert ens_cell["has_ensemble"] is True
+
+
+def test_ensemble_aggregation_and_fallback():
+    # Phase 4m: deep-ensemble rows aggregate ΔAURC(geom-ens) + count seeds where geometry wins.
+    rows = [_row(12, s, 0.09, 0.07, ensemble=(0.03, 0.01, 0.10, 0.80, 5)) for s in range(5)]
+    a = aggregate.aggregate_cell(rows)
+    assert a["has_ensemble"] is True
+    assert a["ensemble_size"] == 5
+    assert a["delta_aurc_vs_ensemble"][0] == 0.03
+    assert a["seeds_beat_ensemble"] == 5                 # every seed CI clears 0 (lo=0.01)
+    assert a["aurc_ensemble"][0] == 0.10 and a["ensemble_accuracy"][0] == 0.80
+
+    # a tie (CI includes 0) is not counted as geometry beating the ensemble
+    tie = [_row(12, s, 0.09, 0.07, ensemble=(0.001, -0.004, 0.08, 0.80, 5)) for s in range(5)]
+    assert aggregate.aggregate_cell(tie)["seeds_beat_ensemble"] == 0
+
+    # pre-4m rows (no ensemble field) fall back cleanly
+    old = aggregate.aggregate_cell([_row(12, s, 0.09, 0.07) for s in range(3)])
+    assert old["has_ensemble"] is False
+    import math
+    assert math.isnan(old["delta_aurc_vs_ensemble"][0])
 
 
 def test_feature_ablation_aggregates():

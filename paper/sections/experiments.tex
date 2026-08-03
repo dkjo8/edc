@@ -125,7 +125,21 @@ the fixed-bowl basin-center landscapes, where extra features only add noise. So 
 does not help on graph---the graph redundancy is a property of the task, not of thin features, and a
 well-calibrated softmax already captures what even the richest descent geometry would add.
 
+\paragraph{Deep ensembles: is geometry just cheap ensembling? (Table~\ref{tab:ensemble}).} The
+strongest standard uncertainty baseline---and the natural worry that geometry's edge is merely
+ensembling by another name (the $K$ restarts already average one model). We compare against a
+\emph{deep ensemble of $M{=}5$ independently-trained models} (mean-softmax MSP / entropy /
+mutual-information), scored on the deployed model's correctness and reported separately because it
+costs $5\times$ the training and inference. The result mirrors the softmax finding exactly: on
+\textbf{arithmetic-IRED, single-model descent geometry gives lower selective risk than the $5$-model
+ensemble on all $5$ seeds} ($\Delta\mathrm{AURC}=+0.017\pm0.019$)---and it does so \emph{even though
+the ensemble is more accurate} ($0.92$ vs $0.84$): geometry ranks its own model's errors better than
+the ensemble's averaged uncertainty, at $1/5$ the compute. Everywhere else the ensemble wins or ties,
+the same cells where geometry already lost or tied softmax. So the ``cheap ensembling'' worry is
+rebutted precisely where the positive claim lives, and the bound is reported plainly elsewhere.
+
 \input{tables/T1_main}
+\input{tables/T8_ensemble}
 \input{tables/T6_halting}
 \input{tables/T7_ood_stress}
 \input{tables/T4_complementarity}
